@@ -59,7 +59,7 @@ export const IncidentReviewModal: React.FC<IncidentReviewModalProps> = ({
         body: JSON.stringify({
           action,
           steward_name: 'G. Connelly (FIA Lead Steward)',
-          notes: notes || (action === 'CONFIRM' ? 'Lap time deleted under FIA Sporting Regulations Art 33.3' : 'Dismissed - within acceptable kerb tolerance.')
+          notes: notes || (action === 'CONFIRM' ? 'Lap time deleted under FIA Sporting Regulations Art 33.3 (all 4 wheels beyond track limit)' : 'Dismissed - within acceptable tolerance under FIA_ALL_FOUR.')
         })
       });
 
@@ -75,6 +75,14 @@ export const IncidentReviewModal: React.FC<IncidentReviewModalProps> = ({
   };
 
   if (!incidentId) return null;
+
+  const driverLabel = incident?.vehicle_id === 31 
+    ? '#31 Esteban Ocon' 
+    : (incident?.vehicle_id === 87 ? '#87 Ollie Bearman' : (incident?.driver_name ?? `#${incident?.vehicle_id}`));
+  
+  const teamLabel = (incident?.vehicle_id === 31 || incident?.vehicle_id === 87)
+    ? 'TGR Haas F1 Team (VF-26)'
+    : (incident?.vehicle_id === 16 ? 'Scuderia Ferrari' : 'Formula 1 Team');
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -99,9 +107,12 @@ export const IncidentReviewModal: React.FC<IncidentReviewModalProps> = ({
                 }`}>
                   {incident?.status?.replace('_', ' ') ?? 'PENDING REVIEW'}
                 </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#1e1e2d] text-[#00E5FF] border border-cyan-800">
+                  {incident?.rule_profile ?? 'FIA_ALL_FOUR'}
+                </span>
               </div>
               <p className="text-xs text-gray-400">
-                FIA Steward Evidence & Adjudication Dossier
+                FIA Steward Evidence & Adjudication Dossier • Red Bull Ring Austrian GP
               </p>
             </div>
           </div>
@@ -121,9 +132,9 @@ export const IncidentReviewModal: React.FC<IncidentReviewModalProps> = ({
             <div className="bg-[#0e0e15] p-3 rounded border border-[#222232]">
               <span className="text-[10px] text-gray-400 uppercase font-medium">Car & Driver</span>
               <div className="text-sm font-bold text-white mt-0.5">
-                #{incident?.vehicle_id} Nico Hülkenberg
+                {driverLabel}
               </div>
-              <span className="text-[10px] text-gray-400">MoneyGram Haas F1</span>
+              <span className="text-[10px] text-gray-400">{teamLabel}</span>
             </div>
 
             <div className="bg-[#0e0e15] p-3 rounded border border-[#222232]">
@@ -145,7 +156,7 @@ export const IncidentReviewModal: React.FC<IncidentReviewModalProps> = ({
             <div className="bg-[#0e0e15] p-3 rounded border border-[#222232]">
               <span className="text-[10px] text-gray-400 uppercase font-medium">AI Confidence</span>
               <div className="text-sm font-bold text-[#00E5FF] font-mono mt-0.5">
-                {incident?.confidence?.confidence_percentage ?? 97.3}%
+                {incident?.confidence?.confidence_percentage ?? 97.8}%
               </div>
               <span className="text-[10px] text-emerald-400 font-semibold">{incident?.confidence?.verdict ?? 'HIGH CONFIDENCE'}</span>
             </div>
@@ -160,29 +171,29 @@ export const IncidentReviewModal: React.FC<IncidentReviewModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="flex justify-between border-b border-[#1c1c28] pb-1.5 text-gray-300">
                 <span>YOLO Detection Certainty:</span>
-                <span className="font-mono text-white">{(incident?.confidence?.detection ?? 0.98) * 100}%</span>
+                <span className="font-mono text-white">{(incident?.confidence?.detection ?? 0.985) * 100}%</span>
               </div>
               <div className="flex justify-between border-b border-[#1c1c28] pb-1.5 text-gray-300">
                 <span>ByteTrack Spatial Continuity:</span>
-                <span className="font-mono text-white">{(incident?.confidence?.tracking ?? 0.97) * 100}%</span>
+                <span className="font-mono text-white">{(incident?.confidence?.tracking ?? 0.978) * 100}%</span>
               </div>
               <div className="flex justify-between border-b border-[#1c1c28] pb-1.5 text-gray-300">
                 <span>Boundary Geometric Distance:</span>
-                <span className="font-mono text-white">{(incident?.confidence?.boundary_evidence ?? 0.99) * 100}%</span>
+                <span className="font-mono text-white">{(incident?.confidence?.boundary_evidence ?? 0.992) * 100}%</span>
               </div>
               <div className="flex justify-between border-b border-[#1c1c28] pb-1.5 text-gray-300">
                 <span>Telemetry Lateral-G Agreement:</span>
-                <span className="font-mono text-white">{(incident?.confidence?.telemetry_evidence ?? 0.95) * 100}%</span>
+                <span className="font-mono text-white">{(incident?.confidence?.telemetry_evidence ?? 0.958) * 100}%</span>
               </div>
             </div>
           </div>
 
-          {/* Video Replay Player (±5s Window) */}
+          {/* Video Replay Player */}
           <div className="bg-[#0e0e15] p-4 rounded-lg border border-[#222232] space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                 <Video className="w-3.5 h-3.5 text-[#E10600]" />
-                10s Synchronized Replay Video (±5s Window)
+                Incident Replay Clip (±5s Window)
               </h4>
               <span className="text-[10px] text-gray-400 font-mono">
                 {incident?.incident_id}
@@ -203,7 +214,7 @@ export const IncidentReviewModal: React.FC<IncidentReviewModalProps> = ({
                   <Film className="w-8 h-8 text-gray-600 mx-auto" />
                   <p className="text-xs text-gray-400 font-medium">Replay clip available for real-video incidents</p>
                   <p className="text-[10px] text-gray-500 max-w-sm">
-                    10-second clip with burned-in boundary polygons and 4-wheel footprint overlays.
+                    Synchronized telemetry and contact patches verified across 4 wheels.
                   </p>
                 </div>
               )}
@@ -262,10 +273,10 @@ export const IncidentReviewModal: React.FC<IncidentReviewModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Footer: Action Decision Buttons (Human-In-The-Loop) */}
+        {/* Modal Footer: Action Decision Buttons */}
         <div className="bg-[#171722] border-t border-[#242436] px-6 py-4 flex items-center justify-between">
           <div className="text-[11px] text-gray-400 italic">
-            Human-in-the-Loop: AI flags the evidence, FIA Steward makes final call.
+            Human-in-the-Loop: AI flags the spatial evidence, FIA Steward makes final call.
           </div>
 
           <div className="flex items-center gap-3">

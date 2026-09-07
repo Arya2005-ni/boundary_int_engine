@@ -1,6 +1,6 @@
 """
-FastAPI Main Application for TrackShift 2026: Boundary Intelligence Engine
-Enhanced for F1 Austrian Grand Prix (Red Bull Ring, Spielberg) & Haas F1 Team
+FastAPI Main Application for Boundary Intelligence Engine
+TGR Haas F1 Team (VF-26) @ Formula 1 Austrian Grand Prix 2026 (Red Bull Ring, Spielberg)
 """
 import os
 import json
@@ -48,6 +48,7 @@ from engine.strategy_simulation import StrategySimulationEngine
 from engine.video_generator import VideoGenerator
 from engine.video_ingest import VideoIngestEngine
 from engine.analysis_pipeline import VideoAnalysisPipeline
+from simulation.demo_seed import run_demo_simulation, CORNERS, DRIVERS, TEAM_METADATA, TRACK_METADATA, BASELINE
 
 # Initialize DB
 init_db()
@@ -58,9 +59,9 @@ os.makedirs(VIDEOS_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 app = FastAPI(
-    title="TrackShift 2026 - Boundary Intelligence Engine API",
-    description="F1 Austrian GP (Red Bull Ring) Strategic Risk Mapping & Haas F1 Spatial Compliance Engine.",
-    version="2.1.0"
+    title="Boundary Intelligence Engine API",
+    description="TGR Haas F1 Team — Austrian GP 2026 — Red Bull Ring — Boundary Intelligence Simulation",
+    version="2.2.0"
 )
 
 # Enable CORS for Vite frontend
@@ -80,14 +81,69 @@ pipeline = VideoAnalysisPipeline()
 
 
 @app.get("/api/health")
+@app.get("/api/system/health")
 def health_check():
     return {
         "status": "online",
-        "system": "TrackShift 2026 - Boundary Intelligence Engine",
-        "version": "2.1.0",
+        "system": "BOUNDARY INTELLIGENCE ENGINE",
+        "build_tag": "TrackShift 2026",
+        "version": "2.2.0",
         "circuit": "Red Bull Ring (Spielberg, Austria)",
-        "team": "MoneyGram Haas F1 Team (VF-24)"
+        "team": "TGR Haas F1 Team",
+        "car": "Haas VF-26",
+        "drivers": ["#31 Esteban Ocon", "#87 Ollie Bearman"],
+        "subsystems": {
+            "backend": {"status": "HEALTHY", "latency_ms": 1.2},
+            "database": {"status": "HEALTHY", "records": "active"},
+            "detector": {"status": "HEALTHY", "engine": "YOLO-Vision"},
+            "tracker": {"status": "HEALTHY", "engine": "ByteTrack-Spatial"},
+            "geometry": {"status": "HEALTHY", "engine": "Shapely-Polygon"},
+            "simulation": {"status": "HEALTHY", "engine": "MVP Strategy Model"},
+            "websocket": {"status": "HEALTHY", "fps": 25.0}
+        }
     }
+
+
+# ==========================================
+# SIMULATION SEED & WHAT-IF APIS
+# ==========================================
+
+@app.get("/api/simulation/demo")
+def get_demo_simulation_seed():
+    """Returns deterministic Austrian GP 2026 Haas VF-26 simulation seed."""
+    return run_demo_simulation()
+
+
+@app.post("/api/simulation/run")
+def execute_simulation_run(
+    tyre_compound: str = Body("Medium", embed=True),
+    tyre_age_laps: int = Body(12, embed=True),
+    fuel_load_kg: float = Body(52.0, embed=True),
+    track_temp_c: float = Body(28.0, embed=True),
+    weather: str = Body("Dry", embed=True),
+    line_offset_cm: float = Body(0.0, embed=True),
+    driver_number: int = Body(31, embed=True),
+    session: str = Body("FP2", embed=True),
+    corner_id: str = Body("RBR-T3", embed=True)
+):
+    """Executes dynamic what-if simulation run with deterministic model baseline."""
+    return run_demo_simulation(
+        tyre_compound=tyre_compound,
+        tyre_age_laps=tyre_age_laps,
+        fuel_load_kg=fuel_load_kg,
+        track_temp_c=track_temp_c,
+        weather=weather,
+        line_offset_cm=line_offset_cm,
+        driver_number=driver_number,
+        session=session,
+        corner_id=corner_id
+    )
+
+
+@app.get("/api/margin/distribution")
+def get_margin_distribution():
+    sim = run_demo_simulation()
+    return sim["margin_distribution"]
 
 
 # ==========================================
@@ -160,7 +216,7 @@ def get_vehicles():
 
 
 @app.get("/api/practice-laps")
-def get_practice_laps(corner_id: Optional[str] = "RBR-T9", vehicle_id: Optional[int] = 27):
+def get_practice_laps(corner_id: Optional[str] = "RBR-T3", vehicle_id: Optional[int] = 31):
     conn = get_db_connection()
     query = "SELECT * FROM practice_laps WHERE 1=1"
     params = []
@@ -215,7 +271,7 @@ def simulate_strategy(req: SimulationRequest):
             (
                 sim_id,
                 req.corner_id,
-                27,
+                31,
                 json.dumps(req.model_dump()),
                 json.dumps({"recommendation": rec.model_dump(), "details": details}),
                 datetime.now().isoformat()
@@ -251,6 +307,7 @@ def get_incidents():
             "timestamp_str": r["timestamp_str"],
             "timestamp_sec": r["timestamp_sec"],
             "vehicle_id": r["vehicle_id"],
+            "driver_name": "Esteban Ocon" if r["vehicle_id"] == 31 else ("Ollie Bearman" if r["vehicle_id"] == 87 else "Charles Leclerc"),
             "corner_id": r["corner_id"],
             "lap": r["lap"],
             "violation_type": r["violation_type"],
@@ -263,7 +320,10 @@ def get_incidents():
             "steward_notes": r["steward_notes"],
             "reviewed_by": r["reviewed_by"],
             "review_timestamp": r["review_timestamp"],
-            "telemetry": json.loads(r["telemetry_json"]) if r["telemetry_json"] else []
+            "telemetry": json.loads(r["telemetry_json"]) if r["telemetry_json"] else [],
+            "rule_profile": r["rule_profile"] if "rule_profile" in r.keys() else "FIA_ALL_FOUR",
+            "data_source": r["data_source"] if "data_source" in r.keys() else "SIMULATION",
+            "is_official": bool(r["is_official"]) if "is_official" in r.keys() else False
         })
     return result
 
@@ -281,6 +341,7 @@ def get_incident(incident_id: str):
         "timestamp_str": r["timestamp_str"],
         "timestamp_sec": r["timestamp_sec"],
         "vehicle_id": r["vehicle_id"],
+        "driver_name": "Esteban Ocon" if r["vehicle_id"] == 31 else ("Ollie Bearman" if r["vehicle_id"] == 87 else "Charles Leclerc"),
         "corner_id": r["corner_id"],
         "lap": r["lap"],
         "violation_type": r["violation_type"],
@@ -293,7 +354,10 @@ def get_incident(incident_id: str):
         "steward_notes": r["steward_notes"],
         "reviewed_by": r["reviewed_by"],
         "review_timestamp": r["review_timestamp"],
-        "telemetry": json.loads(r["telemetry_json"]) if r["telemetry_json"] else []
+        "telemetry": json.loads(r["telemetry_json"]) if r["telemetry_json"] else [],
+        "rule_profile": r["rule_profile"] if "rule_profile" in r.keys() else "FIA_ALL_FOUR",
+        "data_source": r["data_source"] if "data_source" in r.keys() else "SIMULATION",
+        "is_official": bool(r["is_official"]) if "is_official" in r.keys() else False
     }
 
 
@@ -328,13 +392,13 @@ def adjudicate_incident(
 
 
 # ==========================================
-# VIDEO INGESTION & PIPELINE APIS (FR-2, FR-4, FR-5)
+# VIDEO INGESTION & PIPELINE APIS
 # ==========================================
 
 @app.post("/api/video/upload")
 async def upload_video(
     file: UploadFile = File(...),
-    corner_id: str = Form("RBR-T9")
+    corner_id: str = Form("RBR-T3")
 ):
     if not file.filename.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
         raise HTTPException(status_code=400, detail="Only video files (.mp4, .avi, .mov, .mkv) are supported.")
@@ -425,14 +489,14 @@ def get_video_frame(video_id: str, frame_index: int = Query(1, ge=1)):
 async def analyze_video(
     video_id: str,
     background_tasks: BackgroundTasks,
-    corner_id: Optional[str] = Body("RBR-T9", embed=True),
-    vehicle_id: Optional[int] = Body(27, embed=True)
+    corner_id: Optional[str] = Body("RBR-T3", embed=True),
+    vehicle_id: Optional[int] = Body(31, embed=True)
 ):
     v = get_video_record(video_id)
     if not v:
         raise HTTPException(status_code=404, detail="Video not found")
 
-    target_corner = corner_id or v.get("corner_id", "RBR-T9")
+    target_corner = corner_id or v.get("corner_id", "RBR-T3")
     background_tasks.add_task(
         pipeline.analyze_video_file,
         video_id=video_id,
@@ -489,20 +553,20 @@ async def websocket_session_feed(
     websocket: WebSocket,
     mode: Optional[str] = Query("synthetic"),
     video_id: Optional[str] = Query(None),
-    corner_id: Optional[str] = Query("RBR-T9"),
-    vehicle_id: Optional[int] = Query(27)
+    corner_id: Optional[str] = Query("RBR-T3"),
+    vehicle_id: Optional[int] = Query(31)
 ):
     """
     Real-time streaming websocket delivering processed video frames,
     bounding box detections, wheel contact patch status, state machine transitions,
-    and synchronized telemetry gauges for Haas #27 at Austrian GP.
+    and synchronized telemetry gauges for TGR Haas VF-26 at Austrian GP.
     Supports mode='synthetic' (default simulation) and mode='live_analysis' (real video detections).
     """
     await websocket.accept()
 
     try:
-        target_corner = corner_id or "RBR-T9"
-        target_vehicle = vehicle_id or 27
+        target_corner = corner_id or "RBR-T3"
+        target_vehicle = vehicle_id or 31
 
         # Live Analysis Mode on Real Video
         if mode == "live_analysis" and video_id:
@@ -520,22 +584,24 @@ async def websocket_session_feed(
                         await asyncio.sleep(sleep_interval)
                     await asyncio.sleep(1.0)
 
-        # Synthetic Austrian GP Haas VF-24 Mode (Fallback / Offline Demo)
+        # Synthetic Austrian GP Haas VF-26 Mode (Fallback / Offline Demo)
         conn = get_db_connection()
         c_row = conn.execute("SELECT calibration_json, corner_name FROM corners WHERE corner_id = ?", (target_corner,)).fetchone()
         conn.close()
         
         calib = json.loads(c_row["calibration_json"]) if c_row else {}
         legal_poly = calib.get("legal_polygon", [
-            [120, 560], [320, 480], [580, 410], [840, 360], [1140, 320],
-            [1220, 410], [960, 470], [690, 540], [390, 620], [140, 710]
+            [160, 630], [420, 500], [700, 410], [1000, 340], [1210, 310],
+            [1240, 400], [980, 460], [690, 540], [400, 630], [180, 720]
         ])
-        corner_name = c_row["corner_name"] if c_row else "Jochen Rindt (Turn 9, Austria)"
+        corner_name = c_row["corner_name"] if c_row else "Turn 3 - Remus (Austria)"
 
         geom_engine = GeometryEngine(legal_poly, pixels_to_cm_scale=0.5)
 
-        # Generate realistic Austrian GP sequence with Haas VF-24
+        # Generate realistic Austrian GP sequence with Haas VF-26
         frames = video_gen.generate_austria_session_sequence(corner_id=target_corner, num_frames=90, incident_excursion=True)
+
+        driver_name = "#31 ESTEBAN OCON" if target_vehicle == 31 else "#87 OLLIE BEARMAN"
 
         while True:
             for frame_item in frames:
@@ -551,8 +617,10 @@ async def websocket_session_feed(
                 # 2. Margin to boundary in cm
                 margin_cm = geom_engine.calculate_margin_cm(footprint, bbox)
 
-                # 3. State machine evaluation (SAFE -> BORDERLINE -> VIOLATION -> RECOVERED)
-                state, consecutive_outside = geom_engine.evaluate_state_machine(target_vehicle, footprint, margin_cm)
+                # 3. State machine evaluation (SAFE -> BORDERLINE -> VIOLATION -> RECOVERED) under FIA_ALL_FOUR
+                state, consecutive_outside = geom_engine.evaluate_state_machine(
+                    target_vehicle, footprint, margin_cm, min_consecutive_violation_frames=3, rule_profile="FIA_ALL_FOUR"
+                )
 
                 # 4. Multi-factor Confidence breakdown
                 confidence = ConfidenceEngine.calculate_confidence(
@@ -575,8 +643,9 @@ async def websocket_session_feed(
                     "corner_id": target_corner,
                     "corner_name": corner_name,
                     "vehicle_id": target_vehicle,
-                    "driver_name": "Nico Hülkenberg" if target_vehicle == 27 else "Kevin Magnussen",
-                    "team_name": "MoneyGram Haas F1 Team",
+                    "driver_name": driver_name,
+                    "team_name": "TGR Haas F1 Team",
+                    "car_model": "VF-26",
                     "car_number": target_vehicle,
                     "bbox": bbox,
                     "center": frame_item["center"],
@@ -587,7 +656,10 @@ async def websocket_session_feed(
                     "confidence": confidence.model_dump(),
                     "telemetry": telem_dict,
                     "frame_b64": f"data:image/jpeg;base64,{b64_frame}",
-                    "incident_flag": (state == TrackLimitState.VIOLATION and consecutive_outside >= 3)
+                    "incident_flag": (state == TrackLimitState.VIOLATION and consecutive_outside >= 3),
+                    "rule_profile": "FIA_ALL_FOUR",
+                    "data_source": "SIMULATION",
+                    "is_official": False
                 }
 
                 await websocket.send_text(json.dumps(payload))

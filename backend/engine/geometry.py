@@ -127,11 +127,16 @@ class GeometryEngine:
         vehicle_id: int,
         footprint: WheelFootprint,
         margin_cm: float,
-        min_consecutive_violation_frames: int = 3
+        min_consecutive_violation_frames: int = 3,
+        rule_profile: str = "FIA_ALL_FOUR"
     ) -> Tuple[TrackLimitState, int]:
         """
         Processes temporal state transition for vehicle:
         SAFE -> BORDERLINE -> VIOLATION -> RECOVERED
+        
+        Rule Profiles:
+        - FIA_ALL_FOUR: Official FIA Sporting Regs Art 33.3 (all 4 wheels completely beyond white line)
+        - MVP_ANY_WHEEL: Prototype mode (any wheel outside triggers violation)
         
         Returns:
             Tuple of (CurrentState, ConsecutiveFramesOutside)
@@ -140,9 +145,13 @@ class GeometryEngine:
         outside_count = self.consecutive_outside_counts.get(vehicle_id, 0)
         inside_count = self.consecutive_inside_counts.get(vehicle_id, 0)
 
-        # Determine instantaneous condition
-        is_outside = (footprint.wheels_out_count >= 3) or (margin_cm < 0.0)
-        is_borderline = (footprint.wheels_out_count in (1, 2)) or (0.0 <= margin_cm <= 15.0)
+        # Determine instantaneous condition based on FIA rule profile
+        if rule_profile == "FIA_ALL_FOUR":
+            is_outside = (footprint.wheels_out_count == 4) or (margin_cm < -2.0 and footprint.wheels_out_count >= 4)
+            is_borderline = (footprint.wheels_out_count in (1, 2, 3)) or (0.0 <= margin_cm <= 15.0)
+        else:
+            is_outside = (footprint.wheels_out_count >= 1) or (margin_cm < 0.0)
+            is_borderline = (0.0 <= margin_cm <= 15.0)
 
         if is_outside:
             outside_count += 1

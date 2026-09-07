@@ -51,7 +51,7 @@ export const IncidentsQueueView: React.FC<IncidentsQueueViewProps> = ({
             </h2>
           </div>
           <p className="text-xs text-gray-400 mt-0.5">
-            Complete log of AI-flagged track limit excursions, spatial evidence, and steward rulings.
+            Austrian GP 2026 • AI-flagged track limit excursions, spatial evidence, and steward rulings under FIA_ALL_FOUR.
           </p>
         </div>
 
@@ -92,62 +92,71 @@ export const IncidentsQueueView: React.FC<IncidentsQueueViewProps> = ({
               <th className="py-3.5 px-4 font-semibold">Wheels Out</th>
               <th className="py-3.5 px-4 font-semibold">Min Margin</th>
               <th className="py-3.5 px-4 font-semibold">AI Confidence</th>
+              <th className="py-3.5 px-4 font-semibold">Rule Profile</th>
               <th className="py-3.5 px-4 font-semibold">Status</th>
               <th className="py-3.5 px-4 font-semibold text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#1b1b26]">
-            {filtered.map((inc) => (
-              <tr 
-                key={inc.incident_id}
-                onClick={() => onOpenIncidentReview(inc.incident_id)}
-                className="hover:bg-[#181822] cursor-pointer transition-colors"
-              >
-                <td className="py-3.5 px-4 font-mono font-bold text-white">
-                  {inc.incident_id}
-                </td>
-                <td className="py-3.5 px-4">
-                  <div className="font-semibold text-white">#{inc.vehicle_id} Nico Hülkenberg</div>
-                  <div className="text-[10px] text-gray-400">MoneyGram Haas F1</div>
-                </td>
-                <td className="py-3.5 px-4 font-mono text-gray-300">
-                  {inc.corner_id} • Lap {inc.lap}
-                </td>
-                <td className="py-3.5 px-4">
-                  <span className={`font-mono font-bold ${inc.wheels_out >= 3 ? 'text-[#E10600]' : 'text-[#FFB800]'}`}>
-                    {inc.wheels_out}/4 Out
-                  </span>
-                </td>
-                <td className="py-3.5 px-4 font-mono text-[#E10600]">
-                  {inc.min_margin_cm} cm
-                </td>
-                <td className="py-3.5 px-4 font-mono">
-                  <span className="text-[#00E5FF] font-bold">{inc.confidence.confidence_percentage}%</span>
-                </td>
-                <td className="py-3.5 px-4">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                    inc.status === 'CONFIRMED'
-                      ? 'bg-red-950 text-red-400 border border-red-800'
-                      : inc.status === 'DISMISSED'
-                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                      : 'bg-amber-950 text-amber-400 border border-amber-800'
-                  }`}>
-                    {inc.status.replace('_', ' ')}
-                  </span>
-                </td>
-                <td className="py-3.5 px-4 text-right">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenIncidentReview(inc.incident_id);
-                    }}
-                    className="px-3 py-1 bg-[#20202e] hover:bg-[#2c2c3e] text-white font-semibold rounded text-xs border border-[#303046] transition-all"
-                  >
-                    Review Dossier
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {filtered.map((inc) => {
+              const driverName = inc.vehicle_id === 31 ? '#31 Esteban Ocon' : (inc.vehicle_id === 87 ? '#87 Ollie Bearman' : (inc.driver_name ?? `#${inc.vehicle_id}`));
+              const teamName = (inc.vehicle_id === 31 || inc.vehicle_id === 87) ? 'TGR Haas F1 Team' : (inc.vehicle_id === 16 ? 'Scuderia Ferrari' : 'Formula 1 Team');
+
+              return (
+                <tr 
+                  key={inc.incident_id}
+                  onClick={() => onOpenIncidentReview(inc.incident_id)}
+                  className="hover:bg-[#181822] cursor-pointer transition-colors"
+                >
+                  <td className="py-3.5 px-4 font-mono font-bold text-white">
+                    {inc.incident_id}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="font-semibold text-white">{driverName}</div>
+                    <div className="text-[10px] text-gray-400">{teamName}</div>
+                  </td>
+                  <td className="py-3.5 px-4 font-mono text-gray-300">
+                    {inc.corner_id} • Lap {inc.lap}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <span className={`font-mono font-bold ${inc.wheels_out === 4 ? 'text-[#E10600]' : 'text-[#FFB800]'}`}>
+                      {inc.wheels_out}/4 Out
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 font-mono text-[#E10600]">
+                    {inc.min_margin_cm} cm
+                  </td>
+                  <td className="py-3.5 px-4 font-mono">
+                    <span className="text-[#00E5FF] font-bold">{inc.confidence.confidence_percentage}%</span>
+                  </td>
+                  <td className="py-3.5 px-4 font-mono text-gray-400">
+                    {inc.rule_profile ?? 'FIA_ALL_FOUR'}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      inc.status === 'CONFIRMED'
+                        ? 'bg-red-950 text-red-400 border border-red-800'
+                        : inc.status === 'DISMISSED'
+                        ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                        : 'bg-amber-950 text-amber-400 border border-amber-800'
+                    }`}>
+                      {inc.status.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-right">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenIncidentReview(inc.incident_id);
+                      }}
+                      className="px-3 py-1 bg-[#20202e] hover:bg-[#2c2c3e] text-white font-semibold rounded text-xs border border-[#303046] transition-all"
+                    >
+                      Review Dossier
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

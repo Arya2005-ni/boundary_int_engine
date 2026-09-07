@@ -1,6 +1,19 @@
 export type TrackLimitState = 'SAFE' | 'BORDERLINE' | 'VIOLATION' | 'RECOVERED';
 export type IncidentStatus = 'PENDING_REVIEW' | 'UNDER_REVIEW' | 'CONFIRMED' | 'DISMISSED';
 export type ViewMode = 'STRATEGY' | 'LIVE_STEWARD' | 'CALIBRATION' | 'INCIDENTS' | 'UPLOAD';
+export type RuleProfile = 'FIA_ALL_FOUR' | 'MVP_ANY_WHEEL';
+export type SessionType = 'FP1' | 'FP2' | 'FP3' | 'QUALIFYING' | 'RACE SIMULATION';
+export type WeatherType = 'Dry' | 'Light Rain' | 'Wet';
+
+export interface DriverInfo {
+  driver_id: string;
+  number: number;
+  code: string;
+  first_name: string;
+  last_name: string;
+  display: string;
+  is_active_2026_race_driver: boolean;
+}
 
 export interface VideoRecord {
   video_id: string;
@@ -84,6 +97,16 @@ export interface CornerItem {
   calibration: CornerCalibration;
 }
 
+export interface DynamicCornerRisk {
+  number: number;
+  name: string;
+  official_name: string | null;
+  risk: number;
+  margin_cm: number;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  turn_id: string;
+}
+
 export interface FrameAnalysisResult {
   type: string;
   frame_index: number;
@@ -94,6 +117,7 @@ export interface FrameAnalysisResult {
   vehicle_id: number;
   driver_name: string;
   team_name: string;
+  car_model?: string;
   car_number: number;
   bbox: [number, number, number, number];
   center: [number, number];
@@ -105,6 +129,9 @@ export interface FrameAnalysisResult {
   telemetry: TelemetryPoint;
   frame_b64: string;
   incident_flag: boolean;
+  rule_profile?: string;
+  data_source?: string;
+  is_official?: boolean;
 }
 
 export interface Incident {
@@ -133,20 +160,19 @@ export interface Incident {
     throttle: number;
     brake: number;
   }>;
+  rule_profile?: string;
+  data_source?: string;
+  is_official?: boolean;
 }
 
 export interface StrategyRecommendation {
   corner_id: string;
   corner_name: string;
-  current_risk_pct: number;
-  current_avg_margin_cm: number;
   projected_risk_pct: number;
   recommended_line_offset_cm: number;
   recommended_risk_pct: number;
   lap_time_delta_ms: number;
   rationale: string;
-  tyre_deg_impact_pct: number;
-  fuel_load_impact_pct: number;
   recommendation_level: 'CRITICAL' | 'ADVISORY' | 'OPTIMAL';
 }
 
@@ -163,4 +189,74 @@ export interface CornerMarginDistribution {
   violation_count: number;
   borderline_count: number;
   risk_score_pct: number;
+}
+
+export interface DeterministicDemoSeed {
+  data_source: string;
+  model: string;
+  overall_risk_pct: number;
+  highest_risk_corner: {
+    number: number;
+    name: string;
+    risk_pct: number;
+    severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  };
+  avg_boundary_margin_cm: number;
+  predicted_violations: number;
+  corners: DynamicCornerRisk[];
+  tradeoff_curve: Array<{
+    offset_cm: number;
+    projected_risk_pct: number;
+    lap_time_delta_ms: number;
+  }>;
+  margin_distribution: {
+    p10_margin_cm: number;
+    p50_margin_cm: number;
+    p90_margin_cm: number;
+    mean_margin_cm: number;
+    violation_threshold_cm: number;
+    histogram_bins: Array<{
+      bin_range: string;
+      count: number;
+      is_violation?: boolean;
+      is_borderline?: boolean;
+      is_safe?: boolean;
+    }>;
+  };
+  recommendation: StrategyRecommendation;
+  baseline: {
+    tyre: string;
+    tyre_age_laps: number;
+    fuel_kg: number;
+    track_temp_c: number;
+    weather: string;
+    line_offset_cm: number;
+    driver: string;
+    driver_code: string;
+    driver_number: number;
+    session: string;
+    lap: number;
+    lap_total: number;
+    speed_kmh: number;
+    sector: number;
+  };
+  rule_profile: string;
+  is_official: boolean;
+  team: {
+    official_name: string;
+    short_name: string;
+    car: string;
+    season: number;
+    note: string;
+  };
+  drivers: DriverInfo[];
+  track: {
+    track_id: string;
+    name: string;
+    location: string;
+    length_km: number;
+    corner_count: number;
+    race_laps: number;
+    data_source: string;
+  };
 }

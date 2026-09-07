@@ -1,55 +1,72 @@
 import React from 'react';
-import type { CornerItem } from '../types';
+import type { CornerItem, DynamicCornerRisk } from '../types';
 import { Compass } from 'lucide-react';
 
 interface AustriaTrackMapProps {
-  corners: CornerItem[];
+  corners?: CornerItem[];
   selectedCornerId: string;
   onSelectCorner: (id: string) => void;
-  carProgressRatio?: number;
+  dynamicCornerRisks?: DynamicCornerRisk[];
+  driverNumber?: number;
 }
 
 export const AustriaTrackMap: React.FC<AustriaTrackMapProps> = ({
-  corners,
   selectedCornerId,
-  onSelectCorner
+  onSelectCorner,
+  dynamicCornerRisks = [],
+  driverNumber = 31
 }) => {
-  // Red Bull Ring (Spielberg, Austria) Key Corner Coordinates on a 800x450 SVG Canvas
+  // Red Bull Ring (Spielberg, Austria) 10 Corner Positions on 800x450 SVG Canvas
   const cornerPins = [
-    { id: 'RBR-T1', name: 'T1 Niki Lauda', num: 1, x: 220, y: 340, risk: 'LOW', riskColor: '#00E676', speed: '155 km/h' },
-    { id: 'RBR-T3', name: 'T3 Remus', num: 3, x: 680, y: 90, risk: 'MED', riskColor: '#FFB800', speed: '75 km/h' },
-    { id: 'RBR-T4', name: 'T4 Rauch', num: 4, x: 690, y: 220, risk: 'HIGH', riskColor: '#FFB800', speed: '140 km/h' },
-    { id: 'RBR-T6', name: 'T6 Gerhard Berger', num: 6, x: 540, y: 310, risk: 'MED', riskColor: '#FFB800', speed: '210 km/h' },
-    { id: 'RBR-T7', name: 'T7 Würth', num: 7, x: 440, y: 290, risk: 'LOW', riskColor: '#00E676', speed: '195 km/h' },
-    { id: 'RBR-T9', name: 'T9 Jochen Rindt', num: 9, x: 320, y: 390, risk: 'CRITICAL', riskColor: '#E10600', speed: '235 km/h' },
-    { id: 'RBR-T10', name: 'T10 Red Bull Mobile', num: 10, x: 190, y: 390, risk: 'CRITICAL', riskColor: '#E10600', speed: '248 km/h' }
+    { id: 'RBR-T1', name: 'T1 Niki Lauda', num: 1, x: 220, y: 340, defaultRisk: 12, severity: 'LOW' },
+    { id: 'RBR-T2', name: 'Turn 2', num: 2, x: 440, y: 220, defaultRisk: 22, severity: 'LOW' },
+    { id: 'RBR-T3', name: 'T3 Remus', num: 3, x: 670, y: 95, defaultRisk: 74, severity: 'CRITICAL' },
+    { id: 'RBR-T4', name: 'T4 Schlossgold', num: 4, x: 685, y: 220, defaultRisk: 38, severity: 'MEDIUM' },
+    { id: 'RBR-T5', name: 'Turn 5', num: 5, x: 620, y: 260, defaultRisk: 21, severity: 'LOW' },
+    { id: 'RBR-T6', name: 'Turn 6', num: 6, x: 540, y: 300, defaultRisk: 16, severity: 'LOW' },
+    { id: 'RBR-T7', name: 'Turn 7', num: 7, x: 450, y: 285, defaultRisk: 34, severity: 'MEDIUM' },
+    { id: 'RBR-T8', name: 'Turn 8', num: 8, x: 380, y: 320, defaultRisk: 27, severity: 'MEDIUM' },
+    { id: 'RBR-T9', name: 'Turn 9', num: 9, x: 320, y: 390, defaultRisk: 43, severity: 'MEDIUM' },
+    { id: 'RBR-T10', name: 'T10 Jochen Rindt', num: 10, x: 190, y: 390, defaultRisk: 18, severity: 'LOW' }
   ];
+
+  const getSeverityColor = (riskPct: number) => {
+    if (riskPct > 70) return '#E10600'; // RED
+    if (riskPct >= 50) return '#FF8700'; // ORANGE
+    if (riskPct >= 25) return '#FFB800'; // YELLOW
+    return '#00E676'; // GREEN
+  };
+
+  const driverLabel = driverNumber === 31 ? 'HAAS #31 OCO' : 'HAAS #87 BEA';
 
   return (
     <div className="f1-card p-5 space-y-4">
-      <div className="flex items-center justify-between border-b border-[#232332] pb-3">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-[#232332] pb-3">
         <div className="flex items-center gap-2">
           <Compass className="w-4 h-4 text-[#E10600]" />
           <div>
             <h3 className="text-xs font-black text-white uppercase tracking-wider">
-              Red Bull Ring — Spielberg, Austria (Circuit Layout)
+              Red Bull Ring — Spielberg, Austria (Circuit Layout & Spatial Risk Heatmap)
             </h3>
             <span className="text-[10px] text-gray-400 font-mono">
-              Length: 4.318 km • 10 Turns • 3 DRS Zones • FIA Track Limits Hotspots
+              Length: 4.318 km • 10 Turns • 71 Laps • FIA Track Limits Profile: FIA_ALL_FOUR
             </span>
           </div>
         </div>
 
-        {/* Legend */}
+        {/* Heatmap Legend */}
         <div className="flex items-center gap-3 text-[10px] font-mono">
           <span className="flex items-center gap-1 text-[#E10600]">
-            <span className="w-2 h-2 rounded-full bg-[#E10600]" /> Critical Limits (T9 & T10)
+            <span className="w-2 h-2 rounded-full bg-[#E10600]" /> CRITICAL (&gt;70%)
+          </span>
+          <span className="flex items-center gap-1 text-[#FF8700]">
+            <span className="w-2 h-2 rounded-full bg-[#FF8700]" /> HIGH (50-70%)
           </span>
           <span className="flex items-center gap-1 text-[#FFB800]">
-            <span className="w-2 h-2 rounded-full bg-[#FFB800]" /> Moderate Risk (T4 & T6)
+            <span className="w-2 h-2 rounded-full bg-[#FFB800]" /> MEDIUM (25-50%)
           </span>
           <span className="flex items-center gap-1 text-[#00E676]">
-            <span className="w-2 h-2 rounded-full bg-[#00E676]" /> Compliant (T1)
+            <span className="w-2 h-2 rounded-full bg-[#00E676]" /> LOW (≤25%)
           </span>
         </div>
       </div>
@@ -58,7 +75,6 @@ export const AustriaTrackMap: React.FC<AustriaTrackMapProps> = ({
       <div className="relative w-full aspect-[16/9] bg-[#0c0c12] rounded-lg border border-[#20202e] overflow-hidden flex items-center justify-center p-2">
         <svg viewBox="0 0 800 450" className="w-full h-full">
           <defs>
-            {/* Glow for track outline */}
             <filter id="trackGlow" x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#00E5FF" floodOpacity="0.4" />
             </filter>
@@ -69,10 +85,10 @@ export const AustriaTrackMap: React.FC<AustriaTrackMapProps> = ({
             </linearGradient>
           </defs>
 
-          {/* Sector 1, 2, 3 Sector Shading */}
-          <text x="140" y="320" fill="#555568" fontSize="10" fontFamily="monospace" fontWeight="bold">SECTOR 1 (Start/Finish)</text>
-          <text x="640" y="60" fill="#555568" fontSize="10" fontFamily="monospace" fontWeight="bold">SECTOR 2 (Remus Uphill)</text>
-          <text x="400" y="420" fill="#E10600" fontSize="10" fontFamily="monospace" fontWeight="bold">SECTOR 3 (T9/T10 Track Limits Zone)</text>
+          {/* Sector Labels */}
+          <text x="140" y="320" fill="#555568" fontSize="10" fontFamily="monospace" fontWeight="bold">SECTOR 1 (Start/Finish Straight)</text>
+          <text x="610" y="55" fill="#E10600" fontSize="10" fontFamily="monospace" fontWeight="bold">SECTOR 2 (Turn 3 Remus Uphill Hairpin)</text>
+          <text x="360" y="430" fill="#555568" fontSize="10" fontFamily="monospace" fontWeight="bold">SECTOR 3 (Turn 9 & 10 Jochen Rindt)</text>
 
           {/* Main Circuit Track Outline (Red Bull Ring Shape) */}
           <path
@@ -123,18 +139,22 @@ export const AustriaTrackMap: React.FC<AustriaTrackMapProps> = ({
             filter="url(#trackGlow)"
           />
 
-          {/* Highlighting T9 & T10 Track Limit Danger Red Zone */}
+          {/* Highlight Turn 3 Remus Critical Danger Red Zone */}
           <path
-            d="M 350 360 Q 340 400, 290 400 L 200 400 Q 160 400, 170 380"
+            d="M 650 90 Q 690 80, 690 120 L 670 200"
             fill="none"
             stroke="#E10600"
             strokeWidth="6"
             strokeLinecap="round"
           />
 
-          {/* Interactive Turn Pins */}
+          {/* Interactive Turn Pins (All 10 Turns) */}
           {cornerPins.map((pin) => {
             const isSelected = selectedCornerId === pin.id;
+            const dynRisk = dynamicCornerRisks.find(c => c.number === pin.num);
+            const riskVal = dynRisk ? dynRisk.risk : pin.defaultRisk;
+            const color = getSeverityColor(riskVal);
+
             return (
               <g 
                 key={pin.id} 
@@ -145,9 +165,9 @@ export const AustriaTrackMap: React.FC<AustriaTrackMapProps> = ({
                 <circle
                   cx={pin.x}
                   cy={pin.y}
-                  r={isSelected ? 16 : 12}
+                  r={isSelected ? 16 : 11}
                   fill="#14141e"
-                  stroke={pin.riskColor}
+                  stroke={color}
                   strokeWidth={isSelected ? 3 : 1.5}
                 />
 
@@ -184,56 +204,64 @@ export const AustriaTrackMap: React.FC<AustriaTrackMapProps> = ({
                   fontWeight="bold"
                   fontFamily="sans-serif"
                 >
-                  {pin.name}
+                  {pin.name} ({riskVal}%)
                 </text>
               </g>
             );
           })}
 
-          {/* Haas F1 VF-24 Animated Beacon along Turn 9 */}
+          {/* TGR Haas VF-26 Animated Position Marker on Turn 3 Remus */}
           <g>
-            <circle cx="310" cy="390" r="10" fill="#E10600" opacity="0.4" className="animate-ping" />
-            <circle cx="310" cy="390" r="6" fill="#FFFFFF" stroke="#E10600" strokeWidth="2" />
-            <rect x="270" y="415" width="80" height="15" rx="3" fill="#E10600" />
-            <text x="310" y="426" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="bold" fontFamily="sans-serif">
-              HAAS #27 LIVE
+            <circle cx="670" cy="115" r="11" fill="#E10600" opacity="0.4" className="animate-ping" />
+            <circle cx="670" cy="115" r="6" fill="#FFFFFF" stroke="#E10600" strokeWidth="2" />
+            <rect x="625" y="132" width="90" height="15" rx="3" fill="#E10600" />
+            <text x="670" y="143" textAnchor="middle" fill="#FFFFFF" fontSize="8" fontWeight="bold" fontFamily="sans-serif">
+              {driverLabel}
             </text>
           </g>
         </svg>
       </div>
 
-      {/* Austrian GP Corner Quick Selector Cards */}
+      {/* 10 Corners Quick Selector Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
-        {corners.map((c) => (
-          <button
-            key={c.corner_id}
-            onClick={() => onSelectCorner(c.corner_id)}
-            className={`p-2.5 rounded text-left transition-all border ${
-              selectedCornerId === c.corner_id
-                ? 'bg-[#1a1a26] border-[#00E5FF] shadow-lg shadow-cyan-950/40'
-                : 'bg-[#101017] border-[#222230] hover:border-[#38384e]'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-white">
-                Turn {c.turn_number}
-              </span>
-              <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
-                c.turn_number === 9 || c.turn_number === 10
-                  ? 'bg-red-950 text-red-400'
-                  : 'bg-emerald-950 text-emerald-400'
-              }`}>
-                {c.turn_number === 9 || c.turn_number === 10 ? 'High Risk' : 'Standard'}
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-400 truncate mt-0.5">
-              {c.corner_name}
-            </p>
-            <span className="text-[10px] text-gray-500 font-mono block mt-0.5">
-              {c.speed_category}
-            </span>
-          </button>
-        ))}
+        {cornerPins.map((c) => {
+          const isSelected = selectedCornerId === c.id;
+          const dynRisk = dynamicCornerRisks.find(r => r.number === c.num);
+          const riskVal = dynRisk ? dynRisk.risk : c.defaultRisk;
+          const color = getSeverityColor(riskVal);
+          const severityText = riskVal > 70 ? 'CRITICAL' : riskVal >= 50 ? 'HIGH' : riskVal >= 25 ? 'MEDIUM' : 'LOW';
+
+          return (
+            <button
+              key={c.id}
+              onClick={() => onSelectCorner(c.id)}
+              className={`p-2 rounded text-left transition-all border ${
+                isSelected
+                  ? 'bg-[#1a1a26] border-[#00E5FF] shadow-lg shadow-cyan-950/40'
+                  : 'bg-[#101017] border-[#222230] hover:border-[#38384e]'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-white">
+                  Turn {c.num}
+                </span>
+                <span 
+                  className="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase"
+                  style={{ 
+                    backgroundColor: `${color}20`,
+                    color: color,
+                    border: `1px solid ${color}40`
+                  }}
+                >
+                  {severityText} ({riskVal}%)
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-400 truncate mt-0.5 font-medium">
+                {c.name}
+              </p>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

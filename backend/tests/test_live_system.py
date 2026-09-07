@@ -1,7 +1,7 @@
 """
-End-to-End System Verification Test Script for TrackShift 2026
+End-to-End System Verification Test Script for Boundary Intelligence Engine
 Tests:
-1. REST API endpoints (Corners, Austria track, Haas vehicles, Practice Laps, Incidents)
+1. REST API endpoints (10 Corners, Austria Red Bull Ring, TGR Haas VF-26 vehicles, Practice Laps, Incidents)
 2. What-If Strategic Simulation calculations (Tyre degradation, Fuel load, Line offset)
 3. Live WebSocket Session Feed (Frame analysis, state machine, 4-wheel footprint, confidence)
 4. Steward Adjudication Workflow
@@ -51,35 +51,37 @@ def test_api_health():
     data = _get_json("/api/health")
     assert data["status"] == "online"
     assert "Red Bull Ring" in data["circuit"]
-    assert "Haas" in data["team"]
+    assert "TGR Haas" in data["team"]
     print("   [PASS] Health check verified:", data)
 
 
 def test_austria_corners():
-    print("2. Testing Austrian GP Corners...")
+    print("2. Testing Austrian GP 10 Corners...")
     corners = _get_json("/api/corners")
-    assert len(corners) >= 5
+    assert len(corners) == 10
     corner_ids = [c["corner_id"] for c in corners]
-    assert "RBR-T9" in corner_ids  # Jochen Rindt
-    assert "RBR-T10" in corner_ids # Red Bull Mobile
-    assert "RBR-T4" in corner_ids  # Rauch
+    assert "RBR-T1" in corner_ids
+    assert "RBR-T3" in corner_ids
+    assert "RBR-T4" in corner_ids
+    assert "RBR-T9" in corner_ids
+    assert "RBR-T10" in corner_ids
     print(f"   [PASS] {len(corners)} Austrian GP corners verified: {corner_ids}")
 
 
 def test_what_if_simulation():
     print("3. Testing What-If Strategic Simulation...")
     sim_payload = {
-        "corner_id": "RBR-T9",
+        "corner_id": "RBR-T3",
         "tyre_compound": "Medium",
-        "tyre_age_laps": 22,
-        "fuel_load_kg": 65.0,
-        "track_temperature_c": 40.0,
+        "tyre_age_laps": 12,
+        "fuel_load_kg": 52.0,
+        "track_temperature_c": 28.0,
         "weather_condition": "Dry",
         "driving_line_offset_cm": 12.0
     }
     result = _post_json("/api/strategy/simulate", sim_payload)
     rec = result["recommendation"]
-    assert rec["corner_id"] == "RBR-T9"
+    assert rec["corner_id"] == "RBR-T3"
     assert "rationale" in rec
     assert len(result["details"]["tradeoff_curve"]) > 0
     print(f"   [PASS] Simulation successful. Projected Risk: {rec['projected_risk_pct']}%, Recommended Offset: +{rec['recommended_line_offset_cm']}cm, Lap Delta: +{rec['lap_time_delta_ms']}ms")
@@ -95,62 +97,38 @@ def test_incidents_and_adjudication():
     adj_payload = {
         "action": "CONFIRM",
         "steward_name": "G. Connelly (FIA Lead Steward)",
-        "notes": "Verified all 4 wheels beyond exit kerb limit on Turn 9. Lap time deleted."
+        "notes": "Verified all 4 wheels beyond exit kerb limit on Turn 3. Lap time deleted."
     }
     adj_data = _post_json(f"/api/incidents/{first_inc['incident_id']}/adjudicate", adj_payload)
     assert adj_data["status"] == "CONFIRMED"
     print(f"   [PASS] Incident {first_inc['incident_id']} successfully confirmed and lap deleted.")
 
 
-async def _run_ws_check():
-    async with websockets.connect(BACKEND_WS) as ws:
-        received_frames = 0
-        violation_detected = False
-
-        for _ in range(35):
-            msg = await ws.recv()
-            data = json.loads(msg)
-            assert data["type"] == "FRAME_ANALYSIS"
-            assert data["vehicle_id"] == 27
-            assert "Haas" in data["team_name"]
-            assert data["frame_b64"].startswith("data:image/jpeg;base64,")
-
-            if data["state"] == "VIOLATION":
-                violation_detected = True
-
-            received_frames += 1
-
-        print(f"   [PASS] Successfully streamed {received_frames} live video frames via WebSocket.")
-        print(f"          State Machine successfully transitioned to VIOLATION when car drifted wide: {violation_detected}")
-        print(f"          Telemetry Snapshot: Speed={data['telemetry']['speed_kmh']} km/h, Lateral G={data['telemetry']['lateral_g']} G, Wheels Out={data['footprint']['wheels_out_count']}/4")
-
-
 def test_live_websocket_stream():
     print("5. Testing Live WebSocket Stream (/ws/session)...")
-    try:
-        asyncio.run(_run_ws_check())
-    except Exception as e:
-        # If server not running in external process during unit test run, use TestClient websocket
-        from fastapi.testclient import TestClient
-        from main import app
-        client = TestClient(app)
-        with client.websocket_connect("/ws/session?mode=synthetic") as websocket:
-            for _ in range(10):
-                data = websocket.receive_json()
-                assert data["type"] == "FRAME_ANALYSIS"
-                assert "bbox" in data
-                assert "footprint" in data
+    from fastapi.testclient import TestClient
+    from main import app
+    client = TestClient(app)
+    with client.websocket_connect("/ws/session?mode=synthetic") as websocket:
+        for _ in range(10):
+            data = websocket.receive_json()
+            assert data["type"] == "FRAME_ANALYSIS"
+            assert "bbox" in data
+            assert "footprint" in data
+            assert data["vehicle_id"] in (31, 87)
+            assert "TGR Haas" in data["team_name"]
+            assert data["rule_profile"] == "FIA_ALL_FOUR"
 
 
 def main():
     print("==================================================")
-    print(">>> TRACKSHIFT 2026 - END-TO-END VERIFICATION SUITE")
+    print(">>> BOUNDARY INTELLIGENCE ENGINE - VERIFICATION SUITE")
     print("==================================================")
     test_api_health(); print()
     test_austria_corners(); print()
     test_what_if_simulation(); print()
     test_incidents_and_adjudication(); print()
-    asyncio.run(test_live_websocket_stream()); print()
+    test_live_websocket_stream(); print()
     print("==================================================")
     print("[SUCCESS] ALL END-TO-END VERIFICATION CHECKS PASSED 100%!")
     print("==================================================")

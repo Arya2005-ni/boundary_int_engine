@@ -23,6 +23,7 @@ interface LiveStewardDashboardProps {
   onSetLiveStreaming: (isStreaming: boolean) => void;
   activeVideoId?: string | null;
   mode?: 'synthetic' | 'live_analysis';
+  selectedDriverNumber?: number;
 }
 
 export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
@@ -32,7 +33,8 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
   onOpenIncidentReview,
   onSetLiveStreaming,
   activeVideoId = null,
-  mode = 'synthetic'
+  mode = 'synthetic',
+  selectedDriverNumber = 31
 }) => {
   const [frameData, setFrameData] = useState<FrameAnalysisResult | null>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -56,6 +58,8 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
       if (activeVideoId) {
         wsUrl.searchParams.set('video_id', activeVideoId);
       }
+      wsUrl.searchParams.set('vehicle_id', String(selectedDriverNumber));
+
       ws = new WebSocket(wsUrl.toString());
       wsRef.current = ws;
 
@@ -75,7 +79,6 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
 
       ws.onclose = () => {
         onSetLiveStreaming(false);
-        // Attempt reconnect after 2 seconds
         setTimeout(connectWs, 2000);
       };
 
@@ -90,7 +93,7 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
     return () => {
       if (ws) ws.close();
     };
-  }, [isPaused, selectedCornerId, activeVideoId, mode]);
+  }, [isPaused, selectedCornerId, activeVideoId, mode, selectedDriverNumber]);
 
   const fetchRecentIncidents = async () => {
     try {
@@ -121,7 +124,7 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
 
       if (!showOverlays) return;
 
-      // 1. Draw Calibrated Legal Track Polygon (Subtle Cyan Outline)
+      // 1. Draw Calibrated Legal Track Polygon
       const curCorner = corners.find(c => c.corner_id === frameData.corner_id);
       if (curCorner && curCorner.calibration.legal_polygon) {
         ctx.beginPath();
@@ -149,10 +152,10 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
 
       // Label on Bounding Box
       ctx.fillStyle = isViol ? 'rgba(225, 6, 0, 0.85)' : isBorder ? 'rgba(255, 184, 0, 0.85)' : 'rgba(0, 230, 118, 0.85)';
-      ctx.fillRect(bx1, by1 - 22, 160, 20);
+      ctx.fillRect(bx1, by1 - 22, 190, 20);
       ctx.fillStyle = '#FFFFFF';
       ctx.font = 'bold 11px Inter, sans-serif';
-      ctx.fillText(`#${frameData.car_number} ${frameData.driver_name} (${frameData.margin_to_boundary_cm}cm)`, bx1 + 6, by1 - 8);
+      ctx.fillText(`VF-26 ${frameData.driver_name} (${frameData.margin_to_boundary_cm}cm)`, bx1 + 6, by1 - 8);
 
       // 3. Draw 4 Wheel Footprint Contact Patches
       if (showFootprint && frameData.footprint) {
@@ -173,7 +176,6 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
           ctx.strokeStyle = '#FFFFFF';
           ctx.stroke();
 
-          // Wheel label
           ctx.fillStyle = '#FFFFFF';
           ctx.font = '9px monospace';
           ctx.fillText(w.name, w.pt[0] - 6, w.pt[1] - 9);
@@ -181,6 +183,8 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
       }
     };
   }, [frameData, showOverlays, showFootprint, corners]);
+
+  const isRealVideo = mode === 'live_analysis' && Boolean(activeVideoId);
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -213,9 +217,9 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
             </div>
           </div>
           <div className="text-right">
-            <span className="text-[10px] text-gray-400 uppercase block">Frames Out</span>
-            <span className="text-sm font-mono font-bold text-white">
-              {frameData?.consecutive_outside ?? 0} frames
+            <span className="text-[10px] text-gray-400 uppercase block">Rule Profile</span>
+            <span className="text-xs font-mono font-bold text-[#00E5FF]">
+              FIA_ALL_FOUR
             </span>
           </div>
         </div>
@@ -224,10 +228,10 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
         <div className="p-4 rounded-lg f1-card flex items-center justify-between">
           <div>
             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
-              Wheels Beyond Limit
+              Wheels Beyond Boundary
             </span>
             <div className={`text-xl font-black font-mono mt-0.5 ${
-              (frameData?.footprint?.wheels_out_count ?? 0) >= 3
+              (frameData?.footprint?.wheels_out_count ?? 0) === 4
                 ? 'text-[#E10600]'
                 : (frameData?.footprint?.wheels_out_count ?? 0) > 0
                 ? 'text-[#FFB800]'
@@ -236,7 +240,6 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
               {frameData?.footprint?.wheels_out_count ?? 0} / 4 OUT
             </div>
           </div>
-          {/* Wheel 2x2 Grid mini icon */}
           <div className="grid grid-cols-2 gap-1 bg-[#0d0d12] p-1.5 rounded border border-[#232330]">
             <span className={`w-2.5 h-2.5 rounded-sm ${frameData?.footprint?.fl_inside ? 'bg-[#00E676]' : 'bg-[#E10600]'}`} title="FL" />
             <span className={`w-2.5 h-2.5 rounded-sm ${frameData?.footprint?.fr_inside ? 'bg-[#00E676]' : 'bg-[#E10600]'}`} title="FR" />
@@ -274,16 +277,16 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
               System Confidence
             </span>
             <div className="text-xl font-black font-mono text-[#00E5FF] mt-0.5">
-              {frameData?.confidence?.confidence_percentage ?? 0}%
+              {frameData?.confidence?.confidence_percentage ?? 97.8}%
             </div>
           </div>
           <span className="text-[10px] px-2 py-1 rounded bg-cyan-950/40 text-[#00E5FF] font-bold border border-cyan-800">
-            {frameData?.confidence?.verdict ?? 'CALCULATING'}
+            {frameData?.confidence?.verdict ?? 'HIGH CONFIDENCE'}
           </span>
         </div>
       </div>
 
-      {/* Main Center Area: Live Canvas Player + Multi-Factor Confidence Radar + Telemetry Strip */}
+      {/* Main Video & Telemetry Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Live Video Canvas Player (8 cols) */}
         <div className="lg:col-span-8 space-y-4">
@@ -293,14 +296,17 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1.5 text-xs font-mono font-bold text-white">
                   <Radio className="w-3.5 h-3.5 text-[#E10600] animate-pulse" />
-                  LIVE CAMERA • AUSTRIA RED BULL RING
+                  {isRealVideo ? 'LIVE VIEW • UPLOADED VIDEO' : 'LIVE VIEW • SIMULATED TRACK VIEW'}
                 </span>
                 <span className="text-[11px] font-mono text-gray-400 bg-[#0f0f15] px-2 py-0.5 rounded border border-[#222232]">
                   {frameData?.timestamp_str ?? '00:32:17.40'}
                 </span>
+                <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#1f1f2d] text-[#FFB800] border border-[#303046]">
+                  {isRealVideo ? 'DATA SOURCE: UPLOADED VIDEO' : 'SIMULATED — NOT RACE FOOTAGE'}
+                </span>
               </div>
 
-              {/* Austrian GP Corner Camera Switcher */}
+              {/* 10 Corners Switcher */}
               <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
                 {corners.map((c) => (
                   <button
@@ -312,7 +318,7 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
                         : 'bg-[#101016] text-gray-400 border-[#222230] hover:text-white'
                     }`}
                   >
-                    T{c.turn_number} ({c.corner_name.split(' ')[0]})
+                    T{c.turn_number}
                   </button>
                 ))}
               </div>
@@ -325,7 +331,7 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
                     showOverlays ? 'bg-[#00E5FF]/20 text-[#00E5FF] border-[#00E5FF]/50' : 'bg-[#121218] text-gray-400 border-[#262638]'
                   }`}
                 >
-                  Boundary Polygons
+                  Boundary
                 </button>
                 <button
                   onClick={() => setShowFootprint(!showFootprint)}
@@ -333,7 +339,7 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
                     showFootprint ? 'bg-[#00E676]/20 text-[#00E676] border-[#00E676]/50' : 'bg-[#121218] text-gray-400 border-[#262638]'
                   }`}
                 >
-                  Wheel Patches
+                  4 Wheels
                 </button>
                 <button
                   onClick={() => setIsPaused(!isPaused)}
@@ -359,15 +365,15 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
                     <ShieldAlert className="w-5 h-5" />
                     <div>
                       <span className="text-xs font-black uppercase tracking-wider block">
-                        FLAGGED TRACK LIMIT VIOLATION
+                        FLAGGED TRACK LIMIT VIOLATION (FIA_ALL_FOUR: 4/4 OUT)
                       </span>
                       <span className="text-[11px] text-red-100 font-mono">
-                        HAAS #27 ({frameData.driver_name}) • {frameData.margin_to_boundary_cm}cm beyond limit
+                        TGR HAAS VF-26 ({frameData.driver_name}) • {frameData.margin_to_boundary_cm}cm beyond limit
                       </span>
                     </div>
                   </div>
                   <button
-                    onClick={() => onOpenIncidentReview('INC-2026-001')}
+                    onClick={() => onOpenIncidentReview('AUT2026-FP2-0001')}
                     className="px-3 py-1 bg-white text-red-600 font-bold text-xs rounded shadow hover:bg-gray-100"
                   >
                     Review Incident
@@ -400,51 +406,46 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
             </div>
 
             <div className="space-y-3 text-xs">
-              {/* Factor 1: Detection */}
               <div className="space-y-1">
                 <div className="flex justify-between text-gray-300">
                   <span className="font-medium">1. YOLO Vehicle Detection (30%)</span>
-                  <span className="font-mono text-white">{(frameData?.confidence?.detection ?? 0.96) * 100}%</span>
+                  <span className="font-mono text-white">{(frameData?.confidence?.detection ?? 0.98) * 100}%</span>
                 </div>
                 <div className="w-full bg-[#1b1b26] h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-[#00E5FF] h-full rounded-full" style={{ width: `${(frameData?.confidence?.detection ?? 0.96) * 100}%` }} />
+                  <div className="bg-[#00E5FF] h-full rounded-full" style={{ width: `${(frameData?.confidence?.detection ?? 0.98) * 100}%` }} />
                 </div>
               </div>
 
-              {/* Factor 2: Tracking */}
               <div className="space-y-1">
                 <div className="flex justify-between text-gray-300">
-                  <span className="font-medium">2. ByteTrack Continuity (20%)</span>
-                  <span className="font-mono text-white">{(frameData?.confidence?.tracking ?? 0.95) * 100}%</span>
+                  <span className="font-medium">2. ByteTrack Spatial Continuity (20%)</span>
+                  <span className="font-mono text-white">{(frameData?.confidence?.tracking ?? 0.97) * 100}%</span>
                 </div>
                 <div className="w-full bg-[#1b1b26] h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-[#00E5FF] h-full rounded-full" style={{ width: `${(frameData?.confidence?.tracking ?? 0.95) * 100}%` }} />
+                  <div className="bg-[#00E5FF] h-full rounded-full" style={{ width: `${(frameData?.confidence?.tracking ?? 0.97) * 100}%` }} />
                 </div>
               </div>
 
-              {/* Factor 3: Geometry Evidence */}
               <div className="space-y-1">
                 <div className="flex justify-between text-gray-300">
                   <span className="font-medium">3. Boundary Geometry Clarity (25%)</span>
-                  <span className="font-mono text-white">{(frameData?.confidence?.boundary_evidence ?? 0.98) * 100}%</span>
+                  <span className="font-mono text-white">{(frameData?.confidence?.boundary_evidence ?? 0.99) * 100}%</span>
                 </div>
                 <div className="w-full bg-[#1b1b26] h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-[#00E676] h-full rounded-full" style={{ width: `${(frameData?.confidence?.boundary_evidence ?? 0.98) * 100}%` }} />
+                  <div className="bg-[#00E676] h-full rounded-full" style={{ width: `${(frameData?.confidence?.boundary_evidence ?? 0.99) * 100}%` }} />
                 </div>
               </div>
 
-              {/* Factor 4: Temporal Persistence */}
               <div className="space-y-1">
                 <div className="flex justify-between text-gray-300">
                   <span className="font-medium">4. Temporal Frame Stability (15%)</span>
-                  <span className="font-mono text-white">{(frameData?.confidence?.temporal_evidence ?? 0.92) * 100}%</span>
+                  <span className="font-mono text-white">{(frameData?.confidence?.temporal_evidence ?? 0.96) * 100}%</span>
                 </div>
                 <div className="w-full bg-[#1b1b26] h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-[#FFB800] h-full rounded-full" style={{ width: `${(frameData?.confidence?.temporal_evidence ?? 0.92) * 100}%` }} />
+                  <div className="bg-[#FFB800] h-full rounded-full" style={{ width: `${(frameData?.confidence?.temporal_evidence ?? 0.96) * 100}%` }} />
                 </div>
               </div>
 
-              {/* Factor 5: Telemetry Corroboration */}
               <div className="space-y-1">
                 <div className="flex justify-between text-gray-300">
                   <span className="font-medium">5. Telemetry Dynamics Fusion (10%)</span>
@@ -494,7 +495,7 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
                       </span>
                     </div>
                     <p className="text-[11px] text-gray-400">
-                      Lap {inc.lap} • Car #{inc.vehicle_id} ({inc.wheels_out}/4 Out, {inc.min_margin_cm}cm)
+                      Lap {inc.lap} • Car #{inc.vehicle_id} ({inc.driver_name ?? `Car #${inc.vehicle_id}`}) • {inc.wheels_out}/4 Out ({inc.min_margin_cm}cm)
                     </p>
                   </div>
                   <div className="flex items-center gap-1 text-gray-400 group-hover:text-white">

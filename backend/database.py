@@ -1,6 +1,7 @@
 """
-Database Manager and Seed Initializer for TrackShift 2026 (SQLite)
-Enhanced with complete F1 Austrian Grand Prix (Red Bull Ring, Spielberg) Track Limits Dataset
+Database Manager and Seed Initializer for Boundary Intelligence Engine (SQLite)
+Enhanced with complete F1 Austrian Grand Prix (Red Bull Ring, Spielberg) 10-Corner Dataset
+and TGR Haas F1 Team (VF-26, #31 Esteban Ocon, #87 Ollie Bearman)
 """
 import sqlite3
 import json
@@ -93,7 +94,10 @@ def init_db():
         steward_notes TEXT,
         reviewed_by TEXT,
         review_timestamp TEXT,
-        telemetry_json TEXT
+        telemetry_json TEXT,
+        rule_profile TEXT DEFAULT 'FIA_ALL_FOUR',
+        data_source TEXT DEFAULT 'SIMULATION',
+        is_official INTEGER DEFAULT 0
     )
     """)
 
@@ -123,7 +127,7 @@ def init_db():
         status TEXT NOT NULL, -- UPLOADED, PROCESSING, COMPLETED, FAILED
         current_frame INTEGER DEFAULT 0,
         total_frames INTEGER DEFAULT 0,
-        corner_id TEXT DEFAULT 'RBR-T9',
+        corner_id TEXT DEFAULT 'RBR-T3',
         telemetry_json TEXT
     )
     """)
@@ -136,56 +140,179 @@ def init_db():
 def seed_initial_data(conn: sqlite3.Connection):
     cursor = conn.cursor()
 
-    # 1. Seed Austrian Grand Prix (Red Bull Ring, Spielberg) Corners
-    # Austria is world-famous for Turn 9 & Turn 10 track limits
+    # 1. Seed All 10 Red Bull Ring (Spielberg, Austria) Corners
+    # Official corner names only: T1 Niki Lauda, T3 Remus, T4 Schlossgold, T10 Jochen Rindt
     austria_corners_data = [
+        {
+            "corner_id": "RBR-T1",
+            "track_id": "RBR",
+            "track_name": "Red Bull Ring (Spielberg, Austria)",
+            "corner_name": "Turn 1 - Niki Lauda",
+            "turn_number": 1,
+            "speed_category": "Uphill Medium-Speed (155 km/h)",
+            "danger_threshold_cm": 12.0,
+            "calibration": {
+                "track_id": "RBR",
+                "corner_id": "RBR-T1",
+                "corner_name": "Turn 1 - Niki Lauda",
+                "legal_polygon": [[140, 600], [380, 480], [660, 400], [960, 345], [1200, 310], [1230, 400], [970, 460], [680, 530], [390, 620], [150, 710]],
+                "apex_point": [800, 380],
+                "danger_zone_distance_cm": 12.0,
+                "image_width": 1280,
+                "image_height": 720
+            }
+        },
+        {
+            "corner_id": "RBR-T2",
+            "track_id": "RBR",
+            "track_name": "Red Bull Ring (Spielberg, Austria)",
+            "corner_name": "Turn 2",
+            "turn_number": 2,
+            "speed_category": "Uphill Kink (295 km/h)",
+            "danger_threshold_cm": 10.5,
+            "calibration": {
+                "track_id": "RBR",
+                "corner_id": "RBR-T2",
+                "corner_name": "Turn 2",
+                "legal_polygon": [[130, 590], [350, 480], [640, 410], [920, 350], [1180, 315], [1220, 405], [960, 465], [670, 535], [380, 625], [140, 715]],
+                "apex_point": [780, 385],
+                "danger_zone_distance_cm": 10.5,
+                "image_width": 1280,
+                "image_height": 720
+            }
+        },
+        {
+            "corner_id": "RBR-T3",
+            "track_id": "RBR",
+            "track_name": "Red Bull Ring (Spielberg, Austria)",
+            "corner_name": "Turn 3 - Remus",
+            "turn_number": 3,
+            "speed_category": "Heavy Braking Hairpin (72 km/h)",
+            "danger_threshold_cm": 18.0,
+            "calibration": {
+                "track_id": "RBR",
+                "corner_id": "RBR-T3",
+                "corner_name": "Turn 3 - Remus",
+                "legal_polygon": [[160, 630], [420, 500], [700, 410], [1000, 340], [1210, 310], [1240, 400], [980, 460], [690, 540], [400, 630], [180, 720]],
+                "kerb_polygon": [[700, 395], [1000, 325], [1210, 295], [1210, 310], [1000, 340], [700, 410]],
+                "runoff_polygon": [[700, 350], [1000, 270], [1210, 240], [1210, 295], [700, 395]],
+                "apex_point": [820, 375],
+                "danger_zone_distance_cm": 18.0,
+                "image_width": 1280,
+                "image_height": 720
+            }
+        },
+        {
+            "corner_id": "RBR-T4",
+            "track_id": "RBR",
+            "track_name": "Red Bull Ring (Spielberg, Austria)",
+            "corner_name": "Turn 4 - Schlossgold",
+            "turn_number": 4,
+            "speed_category": "Downhill Heavy Braking (140 km/h)",
+            "danger_threshold_cm": 15.0,
+            "calibration": {
+                "track_id": "RBR",
+                "corner_id": "RBR-T4",
+                "corner_name": "Turn 4 - Schlossgold",
+                "legal_polygon": [[180, 620], [440, 490], [720, 410], [1020, 350], [1200, 390], [980, 460], [680, 540], [400, 630], [200, 710]],
+                "apex_point": [840, 390],
+                "danger_zone_distance_cm": 15.0,
+                "image_width": 1280,
+                "image_height": 720
+            }
+        },
+        {
+            "corner_id": "RBR-T5",
+            "track_id": "RBR",
+            "track_name": "Red Bull Ring (Spielberg, Austria)",
+            "corner_name": "Turn 5",
+            "turn_number": 5,
+            "speed_category": "Medium-Speed Left (165 km/h)",
+            "danger_threshold_cm": 11.0,
+            "calibration": {
+                "track_id": "RBR",
+                "corner_id": "RBR-T5",
+                "corner_name": "Turn 5",
+                "legal_polygon": [[150, 600], [390, 480], [670, 400], [970, 345], [1190, 320], [1230, 410], [970, 470], [680, 540], [390, 630], [160, 720]],
+                "apex_point": [790, 385],
+                "danger_zone_distance_cm": 11.0,
+                "image_width": 1280,
+                "image_height": 720
+            }
+        },
+        {
+            "corner_id": "RBR-T6",
+            "track_id": "RBR",
+            "track_name": "Red Bull Ring (Spielberg, Austria)",
+            "corner_name": "Turn 6",
+            "turn_number": 6,
+            "speed_category": "Fast Left Hand Sweep (210 km/h)",
+            "danger_threshold_cm": 12.5,
+            "calibration": {
+                "track_id": "RBR",
+                "corner_id": "RBR-T6",
+                "corner_name": "Turn 6",
+                "legal_polygon": [[160, 590], [400, 470], [690, 390], [990, 340], [1210, 315], [1240, 405], [980, 465], [700, 535], [410, 625], [170, 715]],
+                "apex_point": [810, 375],
+                "danger_zone_distance_cm": 12.5,
+                "image_width": 1280,
+                "image_height": 720
+            }
+        },
+        {
+            "corner_id": "RBR-T7",
+            "track_id": "RBR",
+            "track_name": "Red Bull Ring (Spielberg, Austria)",
+            "corner_name": "Turn 7",
+            "turn_number": 7,
+            "speed_category": "Medium-Speed Right (195 km/h)",
+            "danger_threshold_cm": 14.0,
+            "calibration": {
+                "track_id": "RBR",
+                "corner_id": "RBR-T7",
+                "corner_name": "Turn 7",
+                "legal_polygon": [[150, 580], [380, 470], [660, 400], [950, 350], [1190, 320], [1230, 410], [970, 470], [680, 540], [400, 630], [160, 720]],
+                "apex_point": [800, 385],
+                "danger_zone_distance_cm": 14.0,
+                "image_width": 1280,
+                "image_height": 720
+            }
+        },
+        {
+            "corner_id": "RBR-T8",
+            "track_id": "RBR",
+            "track_name": "Red Bull Ring (Spielberg, Austria)",
+            "corner_name": "Turn 8",
+            "turn_number": 8,
+            "speed_category": "Fast Left Hand (225 km/h)",
+            "danger_threshold_cm": 13.0,
+            "calibration": {
+                "track_id": "RBR",
+                "corner_id": "RBR-T8",
+                "corner_name": "Turn 8",
+                "legal_polygon": [[140, 570], [370, 470], [650, 400], [940, 350], [1180, 320], [1220, 410], [960, 470], [670, 540], [390, 630], [150, 720]],
+                "apex_point": [790, 385],
+                "danger_zone_distance_cm": 13.0,
+                "image_width": 1280,
+                "image_height": 720
+            }
+        },
         {
             "corner_id": "RBR-T9",
             "track_id": "RBR",
             "track_name": "Red Bull Ring (Spielberg, Austria)",
-            "corner_name": "Jochen Rindt (Turn 9)",
+            "corner_name": "Turn 9",
             "turn_number": 9,
-            "speed_category": "High (235 km/h)",
+            "speed_category": "High Speed Downhill Entry (235 km/h)",
             "danger_threshold_cm": 15.0,
             "calibration": {
                 "track_id": "RBR",
                 "corner_id": "RBR-T9",
-                "corner_name": "Jochen Rindt (Turn 9)",
-                "legal_polygon": [
-                    [120, 560],
-                    [320, 480],
-                    [580, 410],
-                    [840, 360],
-                    [1140, 320],
-                    [1220, 410],
-                    [960, 470],
-                    [690, 540],
-                    [390, 620],
-                    [140, 710]
-                ],
-                "kerb_polygon": [
-                    [580, 395],
-                    [840, 345],
-                    [1140, 305],
-                    [1140, 320],
-                    [840, 360],
-                    [580, 410]
-                ],
-                "runoff_polygon": [
-                    [580, 350],
-                    [840, 290],
-                    [1180, 250],
-                    [1140, 305],
-                    [580, 395]
-                ],
+                "corner_name": "Turn 9",
+                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1140, 320], [1220, 410], [960, 470], [690, 540], [390, 620], [140, 710]],
+                "kerb_polygon": [[580, 395], [840, 345], [1140, 305], [1140, 320], [840, 360], [580, 410]],
+                "runoff_polygon": [[580, 350], [840, 290], [1180, 250], [1140, 305], [580, 395]],
                 "apex_point": [760, 385],
-                "racing_line": [
-                    [160, 660],
-                    [420, 540],
-                    [740, 420],
-                    [990, 400],
-                    [1200, 360]
-                ],
                 "danger_zone_distance_cm": 15.0,
                 "image_width": 1280,
                 "image_height": 720
@@ -195,144 +322,19 @@ def seed_initial_data(conn: sqlite3.Connection):
             "corner_id": "RBR-T10",
             "track_id": "RBR",
             "track_name": "Red Bull Ring (Spielberg, Austria)",
-            "corner_name": "Red Bull Mobile (Turn 10)",
+            "corner_name": "Turn 10 - Jochen Rindt",
             "turn_number": 10,
-            "speed_category": "High Speed Exit (248 km/h)",
+            "speed_category": "High Speed Main Straight Exit (248 km/h)",
             "danger_threshold_cm": 14.0,
             "calibration": {
                 "track_id": "RBR",
                 "corner_id": "RBR-T10",
-                "corner_name": "Red Bull Mobile (Turn 10)",
-                "legal_polygon": [
-                    [150, 580],
-                    [360, 490],
-                    [620, 420],
-                    [890, 370],
-                    [1180, 330],
-                    [1240, 420],
-                    [980, 480],
-                    [710, 550],
-                    [410, 630],
-                    [160, 720]
-                ],
-                "kerb_polygon": [
-                    [620, 405],
-                    [890, 355],
-                    [1180, 315],
-                    [1180, 330],
-                    [890, 370],
-                    [620, 420]
-                ],
-                "runoff_polygon": [
-                    [620, 360],
-                    [890, 300],
-                    [1200, 260],
-                    [1180, 315],
-                    [620, 405]
-                ],
+                "corner_name": "Turn 10 - Jochen Rindt",
+                "legal_polygon": [[150, 580], [360, 490], [620, 420], [890, 370], [1180, 330], [1240, 420], [980, 480], [710, 550], [410, 630], [160, 720]],
+                "kerb_polygon": [[620, 405], [890, 355], [1180, 315], [1180, 330], [890, 370], [620, 420]],
+                "runoff_polygon": [[620, 360], [890, 300], [1200, 260], [1180, 315], [620, 405]],
                 "apex_point": [780, 395],
                 "danger_zone_distance_cm": 14.0,
-                "image_width": 1280,
-                "image_height": 720
-            }
-        },
-        {
-            "corner_id": "RBR-T4",
-            "track_id": "RBR",
-            "track_name": "Red Bull Ring (Spielberg, Austria)",
-            "corner_name": "Rauch Corner (Turn 4)",
-            "turn_number": 4,
-            "speed_category": "Downhill Heavy Braking (140 km/h)",
-            "danger_threshold_cm": 18.0,
-            "calibration": {
-                "track_id": "RBR",
-                "corner_id": "RBR-T4",
-                "corner_name": "Rauch Corner (Turn 4)",
-                "legal_polygon": [
-                    [180, 620],
-                    [440, 490],
-                    [720, 410],
-                    [1020, 350],
-                    [1200, 390],
-                    [980, 460],
-                    [680, 540],
-                    [400, 630],
-                    [200, 710]
-                ],
-                "kerb_polygon": [
-                    [720, 395],
-                    [1020, 335],
-                    [1020, 350],
-                    [720, 410]
-                ],
-                "runoff_polygon": [
-                    [720, 340],
-                    [1020, 280],
-                    [1020, 335],
-                    [720, 395]
-                ],
-                "apex_point": [840, 390],
-                "danger_zone_distance_cm": 18.0,
-                "image_width": 1280,
-                "image_height": 720
-            }
-        },
-        {
-            "corner_id": "RBR-T1",
-            "track_id": "RBR",
-            "track_name": "Red Bull Ring (Spielberg, Austria)",
-            "corner_name": "Niki Lauda Kurve (Turn 1)",
-            "turn_number": 1,
-            "speed_category": "Uphill Medium-Speed (155 km/h)",
-            "danger_threshold_cm": 16.0,
-            "calibration": {
-                "track_id": "RBR",
-                "corner_id": "RBR-T1",
-                "corner_name": "Niki Lauda Kurve (Turn 1)",
-                "legal_polygon": [
-                    [140, 600],
-                    [380, 480],
-                    [660, 400],
-                    [960, 345],
-                    [1200, 310],
-                    [1230, 400],
-                    [970, 460],
-                    [680, 530],
-                    [390, 620],
-                    [150, 710]
-                ],
-                "apex_point": [800, 380],
-                "danger_zone_distance_cm": 16.0,
-                "image_width": 1280,
-                "image_height": 720
-            }
-        },
-        {
-            "corner_id": "RBR-T6",
-            "track_id": "RBR",
-            "track_name": "Red Bull Ring (Spielberg, Austria)",
-            "corner_name": "Gerhard Berger Kurve (Turn 6)",
-            "turn_number": 6,
-            "speed_category": "Fast Left Hand Sweep (210 km/h)",
-            "danger_threshold_cm": 15.0,
-            "calibration": {
-                "track_id": "RBR",
-                "corner_id": "RBR-T6",
-                "corner_name": "Gerhard Berger Kurve (Turn 6)",
-                "legal_polygon": [
-                    [160, 590],
-                    [400, 470],
-                    [690, 390],
-                    [990, 340],
-                    [1210, 315],
-                    [1240, 405],
-                    [980, 465],
-                    [700, 535],
-                    [410, 625],
-                    [170, 715]
-                ],
-                "apex_point": [810, 375],
-                "danger_zone_distance_cm": 15.0,
                 "image_width": 1280,
                 "image_height": 720
             }
@@ -354,10 +356,10 @@ def seed_initial_data(conn: sqlite3.Connection):
             )
         )
 
-    # 2. Seed F1 Vehicles emphasizing MoneyGram Haas F1 Team (VF-24)
+    # 2. Seed F1 Vehicles emphasizing TGR Haas F1 Team (VF-26) with Esteban Ocon & Ollie Bearman
     vehicles_data = [
-        (27, 27, "Nico Hülkenberg", "MoneyGram Haas F1 Team", "#E10600"),
-        (20, 20, "Kevin Magnussen", "MoneyGram Haas F1 Team", "#E10600"),
+        (31, 31, "Esteban Ocon", "TGR Haas F1 Team", "#E10600"),
+        (87, 87, "Ollie Bearman", "TGR Haas F1 Team", "#E10600"),
         (1, 1, "Max Verstappen", "Red Bull Racing", "#1E41FF"),
         (16, 16, "Charles Leclerc", "Scuderia Ferrari", "#FF1801"),
         (44, 44, "Lewis Hamilton", "Mercedes-AMG Petronas", "#00D2BE"),
@@ -365,14 +367,16 @@ def seed_initial_data(conn: sqlite3.Connection):
     ]
     cursor.executemany("INSERT INTO vehicles VALUES (?, ?, ?, ?, ?)", vehicles_data)
 
-    # 3. Seed Practice Laps for Haas #27 & #20 on Austria RBR Corners (FP1 & FP2 telemetry)
+    # 3. Seed Practice Laps for Haas #31 (Ocon) & #87 (Bearman) on Red Bull Ring Corners (FP2 telemetry)
     practice_laps = []
     import random
     random.seed(42)
 
-    for corner in ["RBR-T9", "RBR-T10", "RBR-T4", "RBR-T6", "RBR-T1"]:
-        base_apex = 222.0 if "T9" in corner or "T10" in corner else (142.0 if "T4" in corner else 198.0)
-        base_lat_g = 4.1 if "T9" in corner or "T10" in corner else 3.2
+    for corner_item in austria_corners_data:
+        c_id = corner_item["corner_id"]
+        t_num = corner_item["turn_number"]
+        base_apex = 225.0 if t_num in (9, 10) else (75.0 if t_num == 3 else 160.0)
+        base_lat_g = 4.1 if t_num in (9, 10) else 3.4
         
         for lap in range(1, 26):
             tyre_wear = min(85.0, lap * 3.2)
@@ -383,12 +387,17 @@ def seed_initial_data(conn: sqlite3.Connection):
             exit_speed = apex_speed + random.uniform(18.0, 28.0)
             lateral_g = base_lat_g + random.uniform(-0.25, 0.35)
 
-            # Turn 9 & Turn 10 have tighter exit margins in late stints
-            margin_noise = random.gauss(0, 4.5)
-            drift_factor = (lap / 25.0) * -18.0 if "T9" in corner or "T10" in corner else (lap / 25.0) * -10.0
-            margin_cm = 18.5 + drift_factor + margin_noise
+            # Turn 3 has highest critical risk, Turn 9/10 also tight
+            if t_num == 3:
+                drift_factor = (lap / 25.0) * -16.0
+                margin_noise = random.gauss(0, 3.5)
+                margin_cm = 8.5 + drift_factor + margin_noise
+            else:
+                drift_factor = (lap / 25.0) * -10.0
+                margin_noise = random.gauss(0, 4.0)
+                margin_cm = 16.0 + drift_factor + margin_noise
 
-            if margin_cm > 12.0:
+            if margin_cm > 8.0:
                 status = "SAFE"
                 conf = 0.96 + random.uniform(0.01, 0.03)
             elif margin_cm >= 0.0:
@@ -400,8 +409,8 @@ def seed_initial_data(conn: sqlite3.Connection):
 
             practice_laps.append((
                 None,
-                27,  # Haas #27
-                corner,
+                31,  # Haas #31 (Ocon)
+                c_id,
                 lap,
                 round(entry_speed, 1),
                 round(apex_speed, 1),
@@ -425,7 +434,7 @@ def seed_initial_data(conn: sqlite3.Connection):
         practice_laps
     )
 
-    # 4. Seed Historical Austrian GP Incidents for Haas and Rivals
+    # 4. Seed Realistic Austrian GP Incidents with FIA_ALL_FOUR Profile
     confidence_haas1 = {
         "detection": 0.985,
         "tracking": 0.978,
@@ -461,62 +470,68 @@ def seed_initial_data(conn: sqlite3.Connection):
 
     incidents_data = [
         (
-            "INC-AUT-001",
-            "00:32:17.420",
+            "AUT2026-FP2-0001",
+            "00:32.72",
             1937.42,
-            27,  # Haas #27
-            "RBR-T9",
-            18,
+            31,  # Haas #31 (Esteban Ocon)
+            "RBR-T3",
+            12,
             "Track Limit Excursion",
             "Exit Left",
             4,
-            -18.4,
+            -5.8,
             7,
             json.dumps(confidence_haas1),
             "PENDING_REVIEW",
-            "MoneyGram Haas VF-24 #27 exceeded track limits at exit of Jochen Rindt (Turn 9) on Lap 18. All 4 wheels fully beyond outer white boundary line onto exit kerb.",
+            "TGR Haas VF-26 #31 (Esteban Ocon) exceeded track limits at exit of Turn 3 (Remus) on Lap 12. All 4 wheels fully beyond outer white boundary line onto exit kerb.",
             None,
             None,
             json.dumps([
-                {"time": 1937.0, "speed": 224.4, "lat_g": 4.12, "steer": -14.2, "throttle": 94.0, "brake": 0.0},
-                {"time": 1937.2, "speed": 228.0, "lat_g": 3.98, "steer": -11.5, "throttle": 98.0, "brake": 0.0},
-                {"time": 1937.4, "speed": 232.2, "lat_g": 3.81, "steer": -8.0, "throttle": 100.0, "brake": 0.0},
-                {"time": 1937.6, "speed": 236.1, "lat_g": 3.52, "steer": -4.2, "throttle": 100.0, "brake": 0.0}
-            ])
+                {"time": 1937.0, "speed": 82.4, "lat_g": 3.42, "steer": -14.2, "throttle": 94.0, "brake": 0.0},
+                {"time": 1937.2, "speed": 88.0, "lat_g": 3.28, "steer": -11.5, "throttle": 98.0, "brake": 0.0},
+                {"time": 1937.4, "speed": 94.2, "lat_g": 3.11, "steer": -8.0, "throttle": 100.0, "brake": 0.0},
+                {"time": 1937.6, "speed": 102.1, "lat_g": 2.92, "steer": -4.2, "throttle": 100.0, "brake": 0.0}
+            ]),
+            "FIA_ALL_FOUR",
+            "SIMULATION",
+            0
         ),
         (
-            "INC-AUT-002",
-            "00:48:12.180",
+            "AUT2026-FP2-0002",
+            "00:48.18",
             2892.18,
-            20,  # Haas #20
-            "RBR-T10",
-            27,
+            87,  # Haas #87 (Ollie Bearman)
+            "RBR-T9",
+            15,
             "Track Limit Excursion",
             "Exit Left",
             4,
-            -15.2,
+            -4.2,
             6,
             json.dumps(confidence_haas2),
             "CONFIRMED",
-            "MoneyGram Haas VF-24 #20 exceeded track limits at final exit Turn 10. Lap time deleted under FIA Sporting Regulations Art 33.3.",
+            "TGR Haas VF-26 #87 (Ollie Bearman) exceeded track limits at exit of Turn 9. Lap time deleted under FIA Sporting Regulations Art 33.3 (all 4 wheels outside).",
             "G. Connelly (FIA Lead Steward)",
             "2026-09-07T14:15:30Z",
             json.dumps([
                 {"time": 2891.8, "speed": 238.1, "lat_g": 4.25, "steer": -16.2, "throttle": 90.0, "brake": 0.0},
                 {"time": 2892.1, "speed": 244.5, "lat_g": 3.95, "steer": -10.0, "throttle": 100.0, "brake": 0.0}
-            ])
+            ]),
+            "FIA_ALL_FOUR",
+            "SIMULATION",
+            0
         ),
         (
-            "INC-AUT-003",
-            "00:19:04.110",
+            "AUT2026-FP2-0003",
+            "00:19.11",
             1144.11,
-            16,  # Ferrari #16
-            "RBR-T9",
+            16,  # Ferrari #16 (Charles Leclerc)
+            "RBR-T4",
             11,
             "Track Limit Excursion",
             "Exit Left",
             4,
-            -12.8,
+            -6.1,
             5,
             json.dumps(confidence_ferrari),
             "CONFIRMED",
@@ -524,17 +539,20 @@ def seed_initial_data(conn: sqlite3.Connection):
             "G. Connelly (FIA Lead Steward)",
             "2026-09-07T14:24:10Z",
             json.dumps([
-                {"time": 1143.8, "speed": 222.1, "lat_g": 4.10, "steer": -15.1, "throttle": 88.0, "brake": 0.0},
-                {"time": 1144.1, "speed": 226.5, "lat_g": 3.88, "steer": -10.2, "throttle": 100.0, "brake": 0.0}
-            ])
+                {"time": 1143.8, "speed": 142.1, "lat_g": 4.10, "steer": -15.1, "throttle": 88.0, "brake": 0.0},
+                {"time": 1144.1, "speed": 148.5, "lat_g": 3.88, "steer": -10.2, "throttle": 100.0, "brake": 0.0}
+            ]),
+            "FIA_ALL_FOUR",
+            "SIMULATION",
+            0
         )
     ]
 
     cursor.executemany(
         """
         INSERT INTO incidents 
-        (incident_id, timestamp_str, timestamp_sec, vehicle_id, corner_id, lap, violation_type, side, wheels_out, min_margin_cm, consecutive_frames, confidence_json, status, steward_notes, reviewed_by, review_timestamp, telemetry_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (incident_id, timestamp_str, timestamp_sec, vehicle_id, corner_id, lap, violation_type, side, wheels_out, min_margin_cm, consecutive_frames, confidence_json, status, steward_notes, reviewed_by, review_timestamp, telemetry_json, rule_profile, data_source, is_official)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         incidents_data
     )
@@ -566,7 +584,7 @@ def save_video_record(video_data: Dict[str, Any]):
             video_data.get("status", "UPLOADED"),
             video_data.get("current_frame", 0),
             video_data.get("total_frames", 0),
-            video_data.get("corner_id", "RBR-T9"),
+            video_data.get("corner_id", "RBR-T3"),
             video_data.get("telemetry_json", None)
         )
     )
@@ -622,4 +640,4 @@ def get_video_telemetry(video_id: str) -> List[Dict[str, Any]]:
 
 if __name__ == "__main__":
     init_db()
-    print("Database initialized successfully with Austria Red Bull Ring data at:", DB_PATH)
+    print("Database initialized successfully with Austrian GP 10-Corner dataset at:", DB_PATH)

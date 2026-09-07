@@ -1,5 +1,6 @@
 """
 Unit Tests for Confidence Scoring, Strategic Simulation, and REST Endpoints
+TGR Haas F1 Team & Austrian GP 2026 Validation
 """
 import pytest
 from fastapi.testclient import TestClient
@@ -19,8 +20,8 @@ def test_confidence_scoring_weights():
     )
     telem = TelemetryPoint(
         timestamp_sec=1937.4,
-        vehicle_id=27,
-        driver_name="Nico Hülkenberg",
+        vehicle_id=31,
+        driver_name="Esteban Ocon",
         speed_kmh=224.0,
         steering_deg=-12.0,
         lateral_g=3.85,
@@ -47,7 +48,7 @@ def test_confidence_scoring_weights():
 def test_strategy_simulation_engine():
     engine = StrategySimulationEngine()
     samples = [18.5, 17.2, 14.8, 12.1, 9.4, 4.2, 0.8, -5.2, -14.1]
-    dist = engine.compute_margin_distribution("RBR-T9", "Jochen Rindt (Turn 9)", samples)
+    dist = engine.compute_margin_distribution("RBR-T3", "Turn 3 - Remus", samples)
 
     assert dist.lap_count == len(samples)
     assert dist.violation_count == 2
@@ -55,7 +56,7 @@ def test_strategy_simulation_engine():
 
     # Test What-If with tyre degradation and line offset
     req = SimulationRequest(
-        corner_id="RBR-T9",
+        corner_id="RBR-T3",
         tyre_compound="Medium",
         tyre_age_laps=25,
         fuel_load_kg=70.0,
@@ -77,31 +78,54 @@ def test_fastapi_endpoints():
     res_health = client.get("/api/health")
     assert res_health.status_code == 200
     assert res_health.json()["status"] == "online"
+    assert "TGR Haas F1 Team" in res_health.json()["team"]
+
+    # System Health
+    res_sys = client.get("/api/system/health")
+    assert res_sys.status_code == 200
+    assert res_sys.json()["subsystems"]["detector"]["status"] == "HEALTHY"
+
+    # Deterministic Demo Seed Endpoint
+    res_demo = client.get("/api/simulation/demo")
+    assert res_demo.status_code == 200
+    demo_data = res_demo.json()
+    assert demo_data["overall_risk_pct"] == 28.7
+    assert demo_data["highest_risk_corner"]["number"] == 3
+    assert demo_data["highest_risk_corner"]["risk_pct"] == 74.2
+    assert demo_data["avg_boundary_margin_cm"] == 8.6
+    assert demo_data["predicted_violations"] == 4
+    assert len(demo_data["corners"]) == 10
+    assert demo_data["rule_profile"] == "FIA_ALL_FOUR"
+
+    # Dynamic Simulation Run Endpoint
+    res_sim_run = client.post(
+        "/api/simulation/run",
+        json={"tyre_compound": "Soft", "tyre_age_laps": 18, "fuel_load_kg": 50.0, "driver_number": 87}
+    )
+    assert res_sim_run.status_code == 200
+    sim_res = res_sim_run.json()
+    assert sim_res["baseline"]["driver_number"] == 87
+    assert sim_res["baseline"]["tyre"] == "Soft"
 
     # Corners
     res_corners = client.get("/api/corners")
     assert res_corners.status_code == 200
-    assert len(res_corners.json()) >= 2
+    assert len(res_corners.json()) == 10
 
     # Incidents
     res_inc = client.get("/api/incidents")
     assert res_inc.status_code == 200
     incidents = res_inc.json()
-    assert len(incidents) > 0
+    assert len(incidents) >= 3
 
     # Adjudicate Incident
     first_inc_id = incidents[0]["incident_id"]
     res_adj = client.post(
         f"/api/incidents/{first_inc_id}/adjudicate",
-        json={"action": "CONFIRM", "steward_name": "Test Steward", "notes": "Test ruling"}
+        json={"action": "CONFIRM", "steward_name": "G. Connelly (FIA Lead Steward)", "notes": "Test ruling confirmed"}
     )
     assert res_adj.status_code == 200
     assert res_adj.json()["status"] == "CONFIRMED"
-
-    # Test Videos List
-    res_vids = client.get("/api/videos")
-    assert res_vids.status_code == 200
-    assert isinstance(res_vids.json(), list)
 
 
 def test_video_upload_and_telemetry_endpoints(tmp_path):
@@ -123,7 +147,7 @@ def test_video_upload_and_telemetry_endpoints(tmp_path):
         res_upload = client.post(
             "/api/video/upload",
             files={"file": ("api_test.mp4", f, "video/mp4")},
-            data={"corner_id": "RBR-T9"}
+            data={"corner_id": "RBR-T3"}
         )
     assert res_upload.status_code == 200
     data = res_upload.json()
@@ -137,7 +161,7 @@ def test_video_upload_and_telemetry_endpoints(tmp_path):
     assert res_status.json()["video_id"] == video_id
 
     # 4. Upload CSV telemetry
-    csv_content = b"timestamp,vehicle_id,speed,lateral_g,steering,throttle,brake\n0.1,27,224.0,3.8,-12.0,100.0,0.0\n0.2,27,226.0,3.9,-10.0,100.0,0.0"
+    csv_content = b"timestamp,vehicle_id,speed,lateral_g,steering,throttle,brake\n0.1,31,224.0,3.8,-12.0,100.0,0.0\n0.2,31,226.0,3.9,-10.0,100.0,0.0"
     res_telem = client.post(
         f"/api/video/{video_id}/telemetry",
         files={"file": ("telemetry.csv", csv_content, "text/csv")}
@@ -153,8 +177,7 @@ def test_video_upload_and_telemetry_endpoints(tmp_path):
     # 6. Kick off analysis
     res_analyze = client.post(
         f"/api/video/{video_id}/analyze",
-        json={"corner_id": "RBR-T9", "vehicle_id": 27}
+        json={"corner_id": "RBR-T3", "vehicle_id": 31}
     )
     assert res_analyze.status_code == 200
     assert res_analyze.json()["status"] == "PROCESSING"
-

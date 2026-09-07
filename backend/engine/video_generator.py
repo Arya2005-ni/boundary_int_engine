@@ -137,8 +137,9 @@ class VideoGenerator:
         cv2.putText(frame, "FIA MP-9", (1085, 242), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (180, 180, 180), 1, cv2.LINE_AA)
 
         # Corner Label HUD
-        cv2.putText(frame, "AUSTRIA GP - RED BULL RING | T9 JOCHEN RINDT", (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2, cv2.LINE_AA)
-        cv2.putText(frame, "TRACK LIMIT MONITORING SECTOR 3", (30, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 229, 255), 1, cv2.LINE_AA)
+        # Corner Label HUD (Simulation Framing)
+        cv2.putText(frame, "SIMULATED TRACK VIEW • TGR HAAS F1 TEAM (VF-26)", (30, 38), cv2.FONT_HERSHEY_SIMPLEX, 0.58, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(frame, "SIMULATED — NOT RACE FOOTAGE • RED BULL RING (AUSTRIA 2026)", (30, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (0, 229, 255), 1, cv2.LINE_AA)
 
         return frame
 
@@ -148,12 +149,12 @@ class VideoGenerator:
         center_x: float,
         center_y: float,
         heading_rad: float,
-        car_number: int = 27,
-        driver_name: str = "N. HÜLKENBERG",
+        car_number: int = 31,
+        driver_name: str = "E. OCON",
         is_excursion: bool = False
     ) -> Tuple[List[float], Dict[str, Tuple[float, float]]]:
         """
-        Renders the MoneyGram Haas F1 VF-24 with authentic matte black carbon chassis,
+        Renders the TGR Haas F1 Team VF-26 with authentic matte black carbon chassis,
         white livery sidepod highlights, Haas red endplates, Halo structure, and Pirelli P-Zero tires.
         """
         car_len = 115.0
@@ -189,7 +190,7 @@ class VideoGenerator:
             # Black wheel rim center
             cv2.circle(frame, (int(pt[0]), int(pt[1])), 4, (40, 40, 45), -1, cv2.LINE_AA)
 
-        # Front Wing Assembly (Haas White & Red)
+        # Front Wing Assembly (TGR Haas White & Red)
         fl_wing = rotate_pt(car_len * 0.50, -car_w * 0.54)
         fr_wing = rotate_pt(car_len * 0.50, car_w * 0.54)
         nose_tip = rotate_pt(car_len * 0.54, 0)
@@ -200,7 +201,7 @@ class VideoGenerator:
         cv2.circle(frame, (int(fl_wing[0]), int(fl_wing[1])), 4, (0, 0, 225), -1, cv2.LINE_AA)
         cv2.circle(frame, (int(fr_wing[0]), int(fr_wing[1])), 4, (0, 0, 225), -1, cv2.LINE_AA)
 
-        # Main Chassis Body Shell (MoneyGram Haas Matte Carbon + White Highlights)
+        # Main Chassis Body Shell (TGR Haas Matte Carbon + White Highlights)
         rl_corner = rotate_pt(-car_len * 0.48, -car_w * 0.36)
         rr_corner = rotate_pt(-car_len * 0.48, car_w * 0.36)
 
@@ -219,7 +220,7 @@ class VideoGenerator:
         # Haas Red Trim Outline
         cv2.polylines(frame, [chassis_poly], True, (0, 0, 225), 2, cv2.LINE_AA)
 
-        # White MoneyGram Engine Cover / Sidepod Highlight
+        # White Engine Cover / Sidepod Highlight
         sidepod_white = np.array([
             rotate_pt(car_len * 0.15, -car_w * 0.18),
             rotate_pt(-car_len * 0.20, -car_w * 0.28),
@@ -232,14 +233,14 @@ class VideoGenerator:
         cockpit_c = rotate_pt(car_len * 0.08, 0)
         # Black cockpit opening
         cv2.circle(frame, (int(cockpit_c[0]), int(cockpit_c[1])), 8, (10, 10, 12), -1, cv2.LINE_AA)
-        # Driver Helmet (Nico Hulk neon yellow / Kevin white)
-        helmet_color = (0, 230, 230) if car_number == 27 else (240, 240, 240)
+        # Driver Helmet (Esteban Ocon red/blue / Ollie Bearman red/yellow)
+        helmet_color = (255, 100, 0) if car_number == 31 else (0, 200, 255)
         cv2.circle(frame, (int(cockpit_c[0] - cos_a * 2), int(cockpit_c[1] - sin_a * 2)), 5, helmet_color, -1, cv2.LINE_AA)
         # Titanium Halo structure
         halo_front = rotate_pt(car_len * 0.16, 0)
         cv2.line(frame, (int(halo_front[0]), int(halo_front[1])), (int(cockpit_c[0]), int(cockpit_c[1])), (0, 0, 225), 3, cv2.LINE_AA)
 
-        # Rear Wing & DRS Flap (Haas Red with MoneyGram branding)
+        # Rear Wing & DRS Flap (Haas Red)
         rear_l = rotate_pt(-car_len * 0.50, -car_w * 0.48)
         rear_r = rotate_pt(-car_len * 0.50, car_w * 0.48)
         cv2.line(frame, (int(rear_l[0]), int(rear_l[1])), (int(rear_r[0]), int(rear_r[1])), (0, 0, 225), 6, cv2.LINE_AA)
@@ -249,7 +250,7 @@ class VideoGenerator:
         rear_light = rotate_pt(-car_len * 0.52, 0)
         cv2.circle(frame, (int(rear_light[0]), int(rear_light[1])), 3, (0, 0, 255), -1, cv2.LINE_AA)
 
-        # Driver Car Number (27 or 20) on Nose
+        # Driver Car Number (#31 or #87) on Nose
         num_pos = rotate_pt(car_len * 0.32, -4)
         cv2.putText(frame, str(car_number), (int(num_pos[0]), int(num_pos[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (255, 255, 255), 1, cv2.LINE_AA)
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { ViewMode, CornerItem, Incident } from './types';
+import type { ViewMode, CornerItem, Incident, SessionType } from './types';
 import { HeaderNav } from './components/HeaderNav';
 import { StrategicDashboard } from './components/StrategicDashboard';
 import { LiveStewardDashboard } from './components/LiveStewardDashboard';
@@ -12,12 +12,14 @@ import { API_URL } from './config';
 export const App: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<ViewMode>('STRATEGY');
   const [corners, setCorners] = useState<CornerItem[]>([]);
-  const [selectedCornerId, setSelectedCornerId] = useState<string>('RBR-T9');
+  const [selectedCornerId, setSelectedCornerId] = useState<string>('RBR-T3');
   const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
   const [pendingIncidentsCount, setPendingIncidentsCount] = useState<number>(0);
   const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(false);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
   const [liveStreamMode, setLiveStreamMode] = useState<'synthetic' | 'live_analysis'>('synthetic');
+  const [selectedDriverNumber, setSelectedDriverNumber] = useState<number>(31);
+  const [selectedSession, setSelectedSession] = useState<SessionType>('FP2');
 
   useEffect(() => {
     fetchCorners();
@@ -78,23 +80,23 @@ export const App: React.FC = () => {
         }}
         pendingIncidentsCount={pendingIncidentsCount}
         isLiveStreaming={isLiveStreaming}
+        selectedDriverNumber={selectedDriverNumber}
+        onSelectDriver={setSelectedDriverNumber}
+        selectedSession={selectedSession}
+        onSelectSession={setSelectedSession}
       />
 
       {/* Main Content Area Based on Mode */}
       <main className="flex-1">
-        {currentMode === 'UPLOAD' && (
-          <VideoUploadView
-            corners={corners}
-            onSelectVideoForLive={handleSelectVideoForLive}
-            onSelectVideoForCalib={handleSelectVideoForCalib}
-          />
-        )}
-
         {currentMode === 'STRATEGY' && (
           <StrategicDashboard
             corners={corners}
             selectedCornerId={selectedCornerId}
             onSelectCorner={setSelectedCornerId}
+            selectedDriverNumber={selectedDriverNumber}
+            onSelectDriver={setSelectedDriverNumber}
+            selectedSession={selectedSession}
+            onSelectSession={setSelectedSession}
           />
         )}
 
@@ -107,6 +109,7 @@ export const App: React.FC = () => {
             onSetLiveStreaming={setIsLiveStreaming}
             activeVideoId={activeVideoId}
             mode={liveStreamMode}
+            selectedDriverNumber={selectedDriverNumber}
           />
         )}
 
@@ -123,6 +126,14 @@ export const App: React.FC = () => {
         {currentMode === 'INCIDENTS' && (
           <IncidentsQueueView
             onOpenIncidentReview={setActiveIncidentId}
+          />
+        )}
+
+        {currentMode === 'UPLOAD' && (
+          <VideoUploadView
+            corners={corners}
+            onSelectVideoForLive={handleSelectVideoForLive}
+            onSelectVideoForCalib={handleSelectVideoForCalib}
           />
         )}
       </main>
