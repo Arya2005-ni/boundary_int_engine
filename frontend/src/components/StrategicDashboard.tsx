@@ -24,6 +24,7 @@ import {
   Line, 
   ReferenceLine
 } from 'recharts';
+import { API_URL } from '../config';
 
 interface StrategicDashboardProps {
   corners: CornerItem[];
@@ -60,7 +61,7 @@ export const StrategicDashboard: React.FC<StrategicDashboardProps> = ({
 
   const fetchCornerData = async (cornerId: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/strategy/distribution/${cornerId}`);
+      const res = await fetch(`${API_URL}/api/strategy/distribution/${cornerId}`);
       if (res.ok) {
         const data = await res.json();
         setDistribution(data);
@@ -82,7 +83,7 @@ export const StrategicDashboard: React.FC<StrategicDashboardProps> = ({
         driving_line_offset_cm: drivingLineOffsetCm
       };
 
-      const res = await fetch('http://localhost:8000/api/strategy/simulate', {
+      const res = await fetch(`${API_URL}/api/strategy/simulate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

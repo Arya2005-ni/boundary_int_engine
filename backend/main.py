@@ -9,11 +9,23 @@ import base64
 import uuid
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+import io
+import pandas as pd
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Body
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Body, UploadFile, File, Form, BackgroundTasks, Query, Response
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from database import init_db, get_db_connection
+from database import (
+    init_db,
+    get_db_connection,
+    save_video_record,
+    get_video_record,
+    get_all_video_records,
+    update_video_status,
+    save_video_telemetry,
+    get_video_telemetry
+)
 from models import (
     TrackLimitState,
     IncidentStatus,
@@ -34,9 +46,16 @@ from engine.telemetry import TelemetryEngine
 from engine.confidence import ConfidenceEngine
 from engine.strategy_simulation import StrategySimulationEngine
 from engine.video_generator import VideoGenerator
+from engine.video_ingest import VideoIngestEngine
+from engine.analysis_pipeline import VideoAnalysisPipeline
 
 # Initialize DB
 init_db()
+
+VIDEOS_DIR = os.path.join(os.path.dirname(__file__), "videos")
+OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
+os.makedirs(VIDEOS_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 app = FastAPI(
     title="TrackShift 2026 - Boundary Intelligence Engine API",
@@ -57,6 +76,7 @@ app.add_middleware(
 strategy_engine = StrategySimulationEngine()
 video_gen = VideoGenerator()
 detector = VehicleDetector()
+pipeline = VideoAnalysisPipeline()
 
 
 @app.get("/api/health")
@@ -308,22 +328,201 @@ def adjudicate_incident(
 
 
 # ==========================================
+# VIDEO INGESTION & PIPELINE APIS (FR-2, FR-4, FR-5)
+# ==========================================
+
+@app.post("/api/video/upload")
+async def upload_video(
+    file: UploadFile = File(...),
+    corner_id: str = Form("RBR-T9")
+):
+    if not file.filename.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+        raise HTTPException(status_code=400, detail="Only video files (.mp4, .avi, .mov, .mkv) are supported.")
+
+    video_id = f"VID-{uuid.uuid4().hex[:8]}"
+    save_filename = f"{video_id}_{file.filename}"
+    save_path = os.path.join(VIDEOS_DIR, save_filename)
+
+    with open(save_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    try:
+        metadata = VideoIngestEngine.extract_metadata(save_path)
+    except Exception as e:
+        metadata = {
+            "fps": 30.0,
+            "total_frames": 90,
+            "width": 1280,
+            "height": 720,
+            "duration_sec": 3.0
+        }
+
+    video_data = {
+        "video_id": video_id,
+        "filename": file.filename,
+        "filepath": save_path,
+        "uploaded_at": datetime.now().isoformat(),
+        "duration_sec": metadata["duration_sec"],
+        "fps": metadata["fps"],
+        "width": metadata["width"],
+        "height": metadata["height"],
+        "status": "UPLOADED",
+        "current_frame": 0,
+        "total_frames": metadata["total_frames"],
+        "corner_id": corner_id
+    }
+    save_video_record(video_data)
+
+    return {
+        "video_id": video_id,
+        "filename": file.filename,
+        "status": "UPLOADED",
+        "metadata": metadata,
+        "message": "Video successfully uploaded and indexed."
+    }
+
+
+@app.get("/api/videos")
+def list_videos():
+    return get_all_video_records()
+
+
+@app.get("/api/video/{video_id}/status")
+def get_video_status(video_id: str):
+    v = get_video_record(video_id)
+    if not v:
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    percent = round((v["current_frame"] / float(max(1, v["total_frames"]))) * 100, 1) if v["total_frames"] > 0 else 0.0
+    return {
+        "video_id": v["video_id"],
+        "filename": v["filename"],
+        "status": v["status"],
+        "current_frame": v["current_frame"],
+        "total_frames": v["total_frames"],
+        "percent_complete": percent,
+        "fps": v["fps"],
+        "duration_sec": v["duration_sec"],
+        "corner_id": v["corner_id"]
+    }
+
+
+@app.get("/api/video/{video_id}/frame")
+def get_video_frame(video_id: str, frame_index: int = Query(1, ge=1)):
+    v = get_video_record(video_id)
+    if not v:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    jpeg_bytes = VideoIngestEngine.get_frame_jpeg(v["filepath"], frame_index=frame_index)
+    if not jpeg_bytes:
+        raise HTTPException(status_code=404, detail=f"Frame {frame_index} could not be extracted.")
+
+    return Response(content=jpeg_bytes, media_type="image/jpeg")
+
+
+@app.post("/api/video/{video_id}/analyze")
+async def analyze_video(
+    video_id: str,
+    background_tasks: BackgroundTasks,
+    corner_id: Optional[str] = Body("RBR-T9", embed=True),
+    vehicle_id: Optional[int] = Body(27, embed=True)
+):
+    v = get_video_record(video_id)
+    if not v:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    target_corner = corner_id or v.get("corner_id", "RBR-T9")
+    background_tasks.add_task(
+        pipeline.analyze_video_file,
+        video_id=video_id,
+        corner_id=target_corner,
+        vehicle_id=vehicle_id
+    )
+
+    update_video_status(video_id, "PROCESSING", 0, v.get("total_frames", 0))
+    return {
+        "status": "PROCESSING",
+        "video_id": video_id,
+        "message": f"Real video detection and compliance analysis started in background for corner {target_corner}."
+    }
+
+
+@app.post("/api/video/{video_id}/telemetry")
+async def upload_telemetry_csv(
+    video_id: str,
+    file: UploadFile = File(...)
+):
+    v = get_video_record(video_id)
+    if not v:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    content = await file.read()
+    try:
+        df = pd.read_csv(io.BytesIO(content))
+        records = df.to_dict(orient="records")
+        save_video_telemetry(video_id, records)
+        return {
+            "status": "success",
+            "video_id": video_id,
+            "rows_ingested": len(records),
+            "columns": list(df.columns)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to parse CSV telemetry: {str(e)}")
+
+
+@app.get("/api/incidents/{incident_id}/replay")
+def get_incident_replay(incident_id: str):
+    video_path = os.path.join(OUTPUT_DIR, f"incident_{incident_id}.mp4")
+    if not os.path.exists(video_path):
+        raise HTTPException(status_code=404, detail=f"Replay clip for incident {incident_id} not found.")
+    return FileResponse(video_path, media_type="video/mp4", filename=f"incident_{incident_id}.mp4")
+
+
+# ==========================================
 # WEBSOCKET REAL-TIME LIVE & SESSION FEED
 # ==========================================
 
 @app.websocket("/ws/session")
-async def websocket_session_feed(websocket: WebSocket):
+async def websocket_session_feed(
+    websocket: WebSocket,
+    mode: Optional[str] = Query("synthetic"),
+    video_id: Optional[str] = Query(None),
+    corner_id: Optional[str] = Query("RBR-T9"),
+    vehicle_id: Optional[int] = Query(27)
+):
     """
     Real-time streaming websocket delivering processed video frames,
     bounding box detections, wheel contact patch status, state machine transitions,
     and synchronized telemetry gauges for Haas #27 at Austrian GP.
+    Supports mode='synthetic' (default simulation) and mode='live_analysis' (real video detections).
     """
     await websocket.accept()
 
     try:
-        # Load corner calibration for Austria Turn 9
+        target_corner = corner_id or "RBR-T9"
+        target_vehicle = vehicle_id or 27
+
+        # Live Analysis Mode on Real Video
+        if mode == "live_analysis" and video_id:
+            v_rec = get_video_record(video_id)
+            if v_rec and os.path.exists(v_rec["filepath"]):
+                while True:
+                    for payload in pipeline.stream_real_video_analysis(
+                        video_id=video_id,
+                        corner_id=target_corner,
+                        vehicle_id=target_vehicle
+                    ):
+                        await websocket.send_text(json.dumps(payload))
+                        fps = v_rec.get("fps", 25.0)
+                        sleep_interval = 1.0 / max(10.0, min(60.0, fps))
+                        await asyncio.sleep(sleep_interval)
+                    await asyncio.sleep(1.0)
+
+        # Synthetic Austrian GP Haas VF-24 Mode (Fallback / Offline Demo)
         conn = get_db_connection()
-        c_row = conn.execute("SELECT calibration_json FROM corners WHERE corner_id = 'RBR-T9'").fetchone()
+        c_row = conn.execute("SELECT calibration_json, corner_name FROM corners WHERE corner_id = ?", (target_corner,)).fetchone()
         conn.close()
         
         calib = json.loads(c_row["calibration_json"]) if c_row else {}
@@ -331,11 +530,12 @@ async def websocket_session_feed(websocket: WebSocket):
             [120, 560], [320, 480], [580, 410], [840, 360], [1140, 320],
             [1220, 410], [960, 470], [690, 540], [390, 620], [140, 710]
         ])
+        corner_name = c_row["corner_name"] if c_row else "Jochen Rindt (Turn 9, Austria)"
 
         geom_engine = GeometryEngine(legal_poly, pixels_to_cm_scale=0.5)
 
         # Generate realistic Austrian GP sequence with Haas VF-24
-        frames = video_gen.generate_austria_session_sequence(corner_id="RBR-T9", num_frames=90, incident_excursion=True)
+        frames = video_gen.generate_austria_session_sequence(corner_id=target_corner, num_frames=90, incident_excursion=True)
 
         while True:
             for frame_item in frames:
@@ -352,7 +552,7 @@ async def websocket_session_feed(websocket: WebSocket):
                 margin_cm = geom_engine.calculate_margin_cm(footprint, bbox)
 
                 # 3. State machine evaluation (SAFE -> BORDERLINE -> VIOLATION -> RECOVERED)
-                state, consecutive_outside = geom_engine.evaluate_state_machine(27, footprint, margin_cm)
+                state, consecutive_outside = geom_engine.evaluate_state_machine(target_vehicle, footprint, margin_cm)
 
                 # 4. Multi-factor Confidence breakdown
                 confidence = ConfidenceEngine.calculate_confidence(
@@ -372,12 +572,12 @@ async def websocket_session_feed(websocket: WebSocket):
                     "frame_index": f_idx,
                     "timestamp_sec": ts_sec,
                     "timestamp_str": f"00:32:{17.4 + (f_idx*0.033):05.2f}",
-                    "corner_id": "RBR-T9",
-                    "corner_name": "Jochen Rindt (Turn 9, Austria)",
-                    "vehicle_id": 27,
-                    "driver_name": "Nico Hülkenberg",
+                    "corner_id": target_corner,
+                    "corner_name": corner_name,
+                    "vehicle_id": target_vehicle,
+                    "driver_name": "Nico Hülkenberg" if target_vehicle == 27 else "Kevin Magnussen",
                     "team_name": "MoneyGram Haas F1 Team",
-                    "car_number": 27,
+                    "car_number": target_vehicle,
                     "bbox": bbox,
                     "center": frame_item["center"],
                     "footprint": footprint.model_dump(),

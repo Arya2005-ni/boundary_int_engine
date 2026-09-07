@@ -13,6 +13,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { TelemetryCharts } from './TelemetryCharts';
+import { API_URL, WS_URL } from '../config';
 
 interface LiveStewardDashboardProps {
   corners: CornerItem[];
@@ -20,6 +21,8 @@ interface LiveStewardDashboardProps {
   onSelectCorner: (id: string) => void;
   onOpenIncidentReview: (incidentId: string) => void;
   onSetLiveStreaming: (isStreaming: boolean) => void;
+  activeVideoId?: string | null;
+  mode?: 'synthetic' | 'live_analysis';
 }
 
 export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
@@ -27,7 +30,9 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
   selectedCornerId,
   onSelectCorner,
   onOpenIncidentReview,
-  onSetLiveStreaming
+  onSetLiveStreaming,
+  activeVideoId = null,
+  mode = 'synthetic'
 }) => {
   const [frameData, setFrameData] = useState<FrameAnalysisResult | null>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -43,7 +48,15 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
     let ws: WebSocket | null = null;
 
     const connectWs = () => {
-      ws = new WebSocket('ws://localhost:8000/ws/session');
+      const wsUrl = new URL(`${WS_URL}/ws/session`);
+      wsUrl.searchParams.set('mode', mode || 'synthetic');
+      if (selectedCornerId) {
+        wsUrl.searchParams.set('corner_id', selectedCornerId);
+      }
+      if (activeVideoId) {
+        wsUrl.searchParams.set('video_id', activeVideoId);
+      }
+      ws = new WebSocket(wsUrl.toString());
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -77,11 +90,11 @@ export const LiveStewardDashboard: React.FC<LiveStewardDashboardProps> = ({
     return () => {
       if (ws) ws.close();
     };
-  }, [isPaused]);
+  }, [isPaused, selectedCornerId, activeVideoId, mode]);
 
   const fetchRecentIncidents = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/incidents');
+      const res = await fetch(`${API_URL}/api/incidents`);
       if (res.ok) {
         const data = await res.json();
         setRecentIncidents(data);

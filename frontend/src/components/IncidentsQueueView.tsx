@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Incident } from '../types';
 import { ShieldAlert, Search } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface IncidentsQueueViewProps {
   onOpenIncidentReview: (incidentId: string) => void;
@@ -19,7 +20,7 @@ export const IncidentsQueueView: React.FC<IncidentsQueueViewProps> = ({
 
   const fetchIncidents = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/incidents');
+      const res = await fetch(`${API_URL}/api/incidents`);
       if (res.ok) {
         const data = await res.json();
         setIncidents(data);

@@ -109,6 +109,25 @@ def init_db():
     )
     """)
 
+    # Videos Table for Real-Video Ingestion & Analysis
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS videos (
+        video_id TEXT PRIMARY KEY,
+        filename TEXT NOT NULL,
+        filepath TEXT NOT NULL,
+        uploaded_at TEXT NOT NULL,
+        duration_sec REAL NOT NULL,
+        fps REAL NOT NULL,
+        width INTEGER NOT NULL,
+        height INTEGER NOT NULL,
+        status TEXT NOT NULL, -- UPLOADED, PROCESSING, COMPLETED, FAILED
+        current_frame INTEGER DEFAULT 0,
+        total_frames INTEGER DEFAULT 0,
+        corner_id TEXT DEFAULT 'RBR-T9',
+        telemetry_json TEXT
+    )
+    """)
+
     conn.commit()
     seed_initial_data(conn)
     conn.close()
@@ -521,6 +540,84 @@ def seed_initial_data(conn: sqlite3.Connection):
     )
 
     conn.commit()
+
+
+# ==========================================
+# VIDEO METADATA & TELEMETRY DB HELPERS
+# ==========================================
+
+def save_video_record(video_data: Dict[str, Any]):
+    conn = get_db_connection()
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO videos 
+        (video_id, filename, filepath, uploaded_at, duration_sec, fps, width, height, status, current_frame, total_frames, corner_id, telemetry_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            video_data["video_id"],
+            video_data["filename"],
+            video_data["filepath"],
+            video_data.get("uploaded_at", datetime.now().isoformat()),
+            video_data.get("duration_sec", 0.0),
+            video_data.get("fps", 30.0),
+            video_data.get("width", 1280),
+            video_data.get("height", 720),
+            video_data.get("status", "UPLOADED"),
+            video_data.get("current_frame", 0),
+            video_data.get("total_frames", 0),
+            video_data.get("corner_id", "RBR-T9"),
+            video_data.get("telemetry_json", None)
+        )
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_video_record(video_id: str) -> Optional[Dict[str, Any]]:
+    conn = get_db_connection()
+    row = conn.execute("SELECT * FROM videos WHERE video_id = ?", (video_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_all_video_records() -> List[Dict[str, Any]]:
+    conn = get_db_connection()
+    rows = conn.execute("SELECT * FROM videos ORDER BY uploaded_at DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def update_video_status(video_id: str, status: str, current_frame: int = 0, total_frames: int = 0):
+    conn = get_db_connection()
+    conn.execute(
+        "UPDATE videos SET status = ?, current_frame = ?, total_frames = ? WHERE video_id = ?",
+        (status, current_frame, total_frames, video_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def save_video_telemetry(video_id: str, telemetry_data: List[Dict[str, Any]]):
+    conn = get_db_connection()
+    conn.execute(
+        "UPDATE videos SET telemetry_json = ? WHERE video_id = ?",
+        (json.dumps(telemetry_data), video_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_video_telemetry(video_id: str) -> List[Dict[str, Any]]:
+    conn = get_db_connection()
+    row = conn.execute("SELECT telemetry_json FROM videos WHERE video_id = ?", (video_id,)).fetchone()
+    conn.close()
+    if row and row["telemetry_json"]:
+        try:
+            return json.loads(row["telemetry_json"])
+        except Exception:
+            return []
+    return []
 
 
 if __name__ == "__main__":

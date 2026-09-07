@@ -7,21 +7,25 @@ import {
   Plus, 
   Check, 
   Crosshair, 
-  HelpCircle
+  HelpCircle, 
+  Video
 } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface TrackCalibrationToolProps {
   corners: CornerItem[];
   selectedCornerId: string;
   onSelectCorner: (id: string) => void;
   onCalibrationSaved: () => void;
+  activeVideoId?: string | null;
 }
 
 export const TrackCalibrationTool: React.FC<TrackCalibrationToolProps> = ({
   corners,
   selectedCornerId,
   onSelectCorner,
-  onCalibrationSaved
+  onCalibrationSaved,
+  activeVideoId = null
 }) => {
   const currentCorner = corners.find(c => c.corner_id === selectedCornerId);
   const [points, setPoints] = useState<[number, number][]>([]);
@@ -32,6 +36,8 @@ export const TrackCalibrationTool: React.FC<TrackCalibrationToolProps> = ({
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [frameIndex, setFrameIndex] = useState(1);
+  const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -45,6 +51,23 @@ export const TrackCalibrationTool: React.FC<TrackCalibrationToolProps> = ({
     }
   }, [currentCorner]);
 
+  // Load real video frame if activeVideoId is provided
+  useEffect(() => {
+    if (activeVideoId) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = `${API_URL}/api/video/${activeVideoId}/frame?frame_index=${frameIndex}`;
+      img.onload = () => {
+        setBgImage(img);
+      };
+      img.onerror = () => {
+        setBgImage(null);
+      };
+    } else {
+      setBgImage(null);
+    }
+  }, [activeVideoId, frameIndex]);
+
   // Draw on Canvas
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -56,21 +79,25 @@ export const TrackCalibrationTool: React.FC<TrackCalibrationToolProps> = ({
     canvas.height = 720;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Draw Simulated Track Roadway Background
-    ctx.fillStyle = '#22242a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (bgImage) {
+      ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+    } else {
+      // 1. Draw Simulated Track Roadway Background
+      ctx.fillStyle = '#22242a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Runoff Gravel
-    ctx.fillStyle = '#183820';
-    ctx.fillRect(0, 0, canvas.width, 340);
+      // Runoff Gravel
+      ctx.fillStyle = '#183820';
+      ctx.fillRect(0, 0, canvas.width, 340);
 
-    // Kerb Stripes along outer curve
-    ctx.strokeStyle = '#E10600';
-    ctx.lineWidth = 14;
-    ctx.beginPath();
-    ctx.moveTo(120, 560);
-    ctx.bezierCurveTo(450, 420, 800, 330, 1140, 320);
-    ctx.stroke();
+      // Kerb Stripes along outer curve
+      ctx.strokeStyle = '#E10600';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.moveTo(120, 560);
+      ctx.bezierCurveTo(450, 420, 800, 330, 1140, 320);
+      ctx.stroke();
+    }
 
     // 2. Draw Current Calibrated Polygon
     if (points.length > 0) {
@@ -202,7 +229,7 @@ export const TrackCalibrationTool: React.FC<TrackCalibrationToolProps> = ({
         danger_zone_distance_cm: dangerThresholdCm
       };
 
-      const res = await fetch(`http://localhost:8000/api/corners/${currentCorner.corner_id}/calibrate`, {
+      const res = await fetch(`${API_URL}/api/corners/${currentCorner.corner_id}/calibrate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedCalib)
@@ -252,6 +279,28 @@ export const TrackCalibrationTool: React.FC<TrackCalibrationToolProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Frame Scrubber for Real Video Calibration */}
+      {activeVideoId && (
+        <div className="f1-card p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-[#303046]">
+          <div className="flex items-center gap-2">
+            <Video className="w-4 h-4 text-[#00E5FF]" />
+            <span className="text-xs font-bold text-white uppercase">Calibrating on Real Video Frame</span>
+            <span className="text-xs font-mono text-gray-400">({activeVideoId})</span>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <span className="text-xs font-mono text-gray-300">Frame #{frameIndex}</span>
+            <input
+              type="range"
+              min={1}
+              max={300}
+              value={frameIndex}
+              onChange={(e) => setFrameIndex(parseInt(e.target.value))}
+              className="w-48 accent-[#E10600] cursor-pointer"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Main Grid: Interactive Canvas & Calibration Toolbar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

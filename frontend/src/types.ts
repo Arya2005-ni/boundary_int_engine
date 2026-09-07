@@ -1,6 +1,22 @@
 export type TrackLimitState = 'SAFE' | 'BORDERLINE' | 'VIOLATION' | 'RECOVERED';
 export type IncidentStatus = 'PENDING_REVIEW' | 'UNDER_REVIEW' | 'CONFIRMED' | 'DISMISSED';
-export type ViewMode = 'STRATEGY' | 'LIVE_STEWARD' | 'CALIBRATION' | 'INCIDENTS';
+export type ViewMode = 'STRATEGY' | 'LIVE_STEWARD' | 'CALIBRATION' | 'INCIDENTS' | 'UPLOAD';
+
+export interface VideoRecord {
+  video_id: string;
+  filename: string;
+  filepath: string;
+  uploaded_at: string;
+  duration_sec: number;
+  fps: number;
+  width: number;
+  height: number;
+  status: 'UPLOADED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  current_frame: number;
+  total_frames: number;
+  corner_id: string;
+  telemetry_json?: string;
+}
 
 export interface WheelFootprint {
   fl_inside: boolean;

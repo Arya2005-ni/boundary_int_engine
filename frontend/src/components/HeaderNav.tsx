@@ -4,7 +4,8 @@ import {
   ShieldAlert, 
   Sliders, 
   Layers, 
-  Radio
+  Radio,
+  Upload
 } from 'lucide-react';
 
 interface HeaderNavProps {
@@ -56,6 +57,18 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
 
       {/* Navigation Modes */}
       <nav className="flex items-center gap-1.5 bg-[#161622] p-1 rounded-lg border border-[#2a2a3c]">
+        <button
+          onClick={() => onSelectMode('UPLOAD')}
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
+            currentMode === 'UPLOAD'
+              ? 'bg-[#E10600] text-white shadow-md shadow-red-900/50'
+              : 'text-gray-400 hover:text-white hover:bg-[#202030]'
+          }`}
+        >
+          <Upload className="w-3.5 h-3.5" />
+          <span>Video Pipeline</span>
+        </button>
+
         <button
           onClick={() => onSelectMode('STRATEGY')}
           className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all ${

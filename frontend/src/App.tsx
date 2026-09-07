@@ -6,6 +6,8 @@ import { LiveStewardDashboard } from './components/LiveStewardDashboard';
 import { TrackCalibrationTool } from './components/TrackCalibrationTool';
 import { IncidentsQueueView } from './components/IncidentsQueueView';
 import { IncidentReviewModal } from './components/IncidentReviewModal';
+import { VideoUploadView } from './components/VideoUploadView';
+import { API_URL } from './config';
 
 export const App: React.FC = () => {
   const [currentMode, setCurrentMode] = useState<ViewMode>('STRATEGY');
@@ -14,6 +16,8 @@ export const App: React.FC = () => {
   const [activeIncidentId, setActiveIncidentId] = useState<string | null>(null);
   const [pendingIncidentsCount, setPendingIncidentsCount] = useState<number>(0);
   const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(false);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const [liveStreamMode, setLiveStreamMode] = useState<'synthetic' | 'live_analysis'>('synthetic');
 
   useEffect(() => {
     fetchCorners();
@@ -22,7 +26,7 @@ export const App: React.FC = () => {
 
   const fetchCorners = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/corners');
+      const res = await fetch(`${API_URL}/api/corners`);
       if (res.ok) {
         const data = await res.json();
         setCorners(data);
@@ -37,7 +41,7 @@ export const App: React.FC = () => {
 
   const fetchIncidents = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/incidents');
+      const res = await fetch(`${API_URL}/api/incidents`);
       if (res.ok) {
         const data: Incident[] = await res.json();
         const pending = data.filter(i => i.status === 'PENDING_REVIEW').length;
@@ -48,18 +52,44 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleSelectVideoForLive = (videoId: string, cornerId: string) => {
+    setActiveVideoId(videoId);
+    setSelectedCornerId(cornerId);
+    setLiveStreamMode('live_analysis');
+    setCurrentMode('LIVE_STEWARD');
+  };
+
+  const handleSelectVideoForCalib = (videoId: string, cornerId: string) => {
+    setActiveVideoId(videoId);
+    setSelectedCornerId(cornerId);
+    setCurrentMode('CALIBRATION');
+  };
+
   return (
     <div className="min-h-screen bg-[#0b0b0f] text-gray-100 flex flex-col font-sans">
       {/* Top Header Navigation */}
       <HeaderNav
         currentMode={currentMode}
-        onSelectMode={setCurrentMode}
+        onSelectMode={(mode) => {
+          if (mode === 'LIVE_STEWARD' && !activeVideoId) {
+            setLiveStreamMode('synthetic');
+          }
+          setCurrentMode(mode);
+        }}
         pendingIncidentsCount={pendingIncidentsCount}
         isLiveStreaming={isLiveStreaming}
       />
 
       {/* Main Content Area Based on Mode */}
       <main className="flex-1">
+        {currentMode === 'UPLOAD' && (
+          <VideoUploadView
+            corners={corners}
+            onSelectVideoForLive={handleSelectVideoForLive}
+            onSelectVideoForCalib={handleSelectVideoForCalib}
+          />
+        )}
+
         {currentMode === 'STRATEGY' && (
           <StrategicDashboard
             corners={corners}
@@ -75,6 +105,8 @@ export const App: React.FC = () => {
             onSelectCorner={setSelectedCornerId}
             onOpenIncidentReview={setActiveIncidentId}
             onSetLiveStreaming={setIsLiveStreaming}
+            activeVideoId={activeVideoId}
+            mode={liveStreamMode}
           />
         )}
 
@@ -84,6 +116,7 @@ export const App: React.FC = () => {
             selectedCornerId={selectedCornerId}
             onSelectCorner={setSelectedCornerId}
             onCalibrationSaved={fetchCorners}
+            activeVideoId={activeVideoId}
           />
         )}
 

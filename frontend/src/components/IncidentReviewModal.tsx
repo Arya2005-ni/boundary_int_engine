@@ -7,8 +7,11 @@ import {
   Slash, 
   Activity, 
   Gauge, 
-  FileText 
+  FileText,
+  Video,
+  Film
 } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface IncidentReviewModalProps {
   incidentId: string | null;
@@ -24,16 +27,18 @@ export const IncidentReviewModal: React.FC<IncidentReviewModalProps> = ({
   const [incident, setIncident] = useState<Incident | null>(null);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [replayAvailable, setReplayAvailable] = useState(true);
 
   useEffect(() => {
     if (incidentId) {
+      setReplayAvailable(true);
       fetchIncidentDetails(incidentId);
     }
   }, [incidentId]);
 
   const fetchIncidentDetails = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/incidents/${id}`);
+      const res = await fetch(`${API_URL}/api/incidents/${id}`);
       if (res.ok) {
         const data = await res.json();
         setIncident(data);
@@ -48,7 +53,7 @@ export const IncidentReviewModal: React.FC<IncidentReviewModalProps> = ({
     if (!incidentId) return;
     try {
       setSubmitting(true);
-      const res = await fetch(`http://localhost:8000/api/incidents/${incidentId}/adjudicate`, {
+      const res = await fetch(`${API_URL}/api/incidents/${incidentId}/adjudicate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -169,6 +174,39 @@ export const IncidentReviewModal: React.FC<IncidentReviewModalProps> = ({
                 <span>Telemetry Lateral-G Agreement:</span>
                 <span className="font-mono text-white">{(incident?.confidence?.telemetry_evidence ?? 0.95) * 100}%</span>
               </div>
+            </div>
+          </div>
+
+          {/* Video Replay Player (±5s Window) */}
+          <div className="bg-[#0e0e15] p-4 rounded-lg border border-[#222232] space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Video className="w-3.5 h-3.5 text-[#E10600]" />
+                10s Synchronized Replay Video (±5s Window)
+              </h4>
+              <span className="text-[10px] text-gray-400 font-mono">
+                {incident?.incident_id}
+              </span>
+            </div>
+
+            <div className="relative rounded-lg overflow-hidden bg-black aspect-video flex items-center justify-center border border-[#202030]">
+              {replayAvailable ? (
+                <video
+                  src={`${API_URL}/api/incidents/${incident?.incident_id}/replay`}
+                  controls
+                  playsInline
+                  className="w-full h-full object-contain"
+                  onError={() => setReplayAvailable(false)}
+                />
+              ) : (
+                <div className="text-center p-6 space-y-2">
+                  <Film className="w-8 h-8 text-gray-600 mx-auto" />
+                  <p className="text-xs text-gray-400 font-medium">Replay clip available for real-video incidents</p>
+                  <p className="text-[10px] text-gray-500 max-w-sm">
+                    10-second clip with burned-in boundary polygons and 4-wheel footprint overlays.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

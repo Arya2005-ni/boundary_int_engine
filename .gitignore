@@ -28,6 +28,7 @@ ENV/
 backend/*.db
 backend/videos/*.mp4
 backend/videos/*.jpg
+backend/output/*.mp4
 
 # Logs
 *.log

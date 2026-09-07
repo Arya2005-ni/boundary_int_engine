@@ -97,3 +97,64 @@ def test_fastapi_endpoints():
     )
     assert res_adj.status_code == 200
     assert res_adj.json()["status"] == "CONFIRMED"
+
+    # Test Videos List
+    res_vids = client.get("/api/videos")
+    assert res_vids.status_code == 200
+    assert isinstance(res_vids.json(), list)
+
+
+def test_video_upload_and_telemetry_endpoints(tmp_path):
+    import cv2
+    import numpy as np
+
+    client = TestClient(app)
+
+    # 1. Create a dummy test video
+    test_vid_file = str(tmp_path / "api_test.mp4")
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(test_vid_file, fourcc, 30.0, (320, 240))
+    for _ in range(15):
+        out.write(np.zeros((240, 320, 3), dtype=np.uint8))
+    out.release()
+
+    # 2. Upload video
+    with open(test_vid_file, "rb") as f:
+        res_upload = client.post(
+            "/api/video/upload",
+            files={"file": ("api_test.mp4", f, "video/mp4")},
+            data={"corner_id": "RBR-T9"}
+        )
+    assert res_upload.status_code == 200
+    data = res_upload.json()
+    assert "video_id" in data
+    assert data["status"] == "UPLOADED"
+    video_id = data["video_id"]
+
+    # 3. Check status
+    res_status = client.get(f"/api/video/{video_id}/status")
+    assert res_status.status_code == 200
+    assert res_status.json()["video_id"] == video_id
+
+    # 4. Upload CSV telemetry
+    csv_content = b"timestamp,vehicle_id,speed,lateral_g,steering,throttle,brake\n0.1,27,224.0,3.8,-12.0,100.0,0.0\n0.2,27,226.0,3.9,-10.0,100.0,0.0"
+    res_telem = client.post(
+        f"/api/video/{video_id}/telemetry",
+        files={"file": ("telemetry.csv", csv_content, "text/csv")}
+    )
+    assert res_telem.status_code == 200
+    assert res_telem.json()["rows_ingested"] == 2
+
+    # 5. Extract frame
+    res_frame = client.get(f"/api/video/{video_id}/frame?frame_index=1")
+    assert res_frame.status_code == 200
+    assert res_frame.headers["content-type"] == "image/jpeg"
+
+    # 6. Kick off analysis
+    res_analyze = client.post(
+        f"/api/video/{video_id}/analyze",
+        json={"corner_id": "RBR-T9", "vehicle_id": 27}
+    )
+    assert res_analyze.status_code == 200
+    assert res_analyze.json()["status"] == "PROCESSING"
+
