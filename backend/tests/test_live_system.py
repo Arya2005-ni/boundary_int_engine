@@ -118,6 +118,49 @@ def test_live_websocket_stream():
             assert data["vehicle_id"] in (31, 87)
             assert "TGR Haas" in data["team_name"]
             assert data["rule_profile"] == "FIA_ALL_FOUR"
+            assert "exact_coordinates" in data
+            assert "companion_vehicle" in data
+
+
+def test_multicar_simulation_and_exact_coordinates():
+    print("6. Testing Multi-Car Trajectory Compliance & Exact Coordinates...")
+    from engine.video_generator import VideoGenerator
+    from engine.geometry import GeometryEngine
+    from models import TrackLimitState
+
+    gen = VideoGenerator()
+    frames = gen.generate_austria_session_sequence(corner_id="RBR-T9", num_frames=90)
+    assert len(frames) == 90
+
+    legal_poly = [
+        [100, 570], [320, 480], [580, 410], [840, 360], [1040, 332], [1180, 312],
+        [1350, 300], [1350, 400], [1160, 425], [980, 470], [690, 540], [390, 620], [100, 720]
+    ]
+    geom = GeometryEngine(legal_poly, pixels_to_cm_scale=0.5)
+
+    states_31 = []
+    wheels_out_87 = []
+
+    for f in frames:
+        # Check car 31 (excursion car)
+        fp_31 = geom.calculate_wheel_footprint(f["bbox"], wheel_coords=f["wheel_pts"])
+        margin_31 = geom.calculate_margin_cm(fp_31, f["bbox"])
+        state_31, out_cnt_31 = geom.evaluate_state_machine(31, fp_31, margin_31, min_consecutive_violation_frames=3)
+        states_31.append(state_31)
+
+        # Check car 87 (safe companion car)
+        comp = f["companion_vehicle"]
+        assert comp is not None
+        fp_87 = geom.calculate_wheel_footprint(comp["bbox"], wheel_coords=comp["wheel_pts"])
+        wheels_out_87.append(fp_87.wheels_out_count)
+
+    # Car 87 must strictly remain on track
+    assert max(wheels_out_87) == 0, f"Expected 0 wheels out for safe Car 87, got {max(wheels_out_87)}"
+
+    # Car 31 must transition to VIOLATION and RECOVER
+    assert TrackLimitState.VIOLATION in states_31, "Car 31 must reach VIOLATION state"
+    assert TrackLimitState.SAFE in states_31, "Car 31 must have SAFE state"
+    print("   [PASS] Multi-car compliance verified: Car #87 strictly on track (0 wheels out), Car #31 enters violation and recovers.")
 
 
 def main():
@@ -129,6 +172,7 @@ def main():
     test_what_if_simulation(); print()
     test_incidents_and_adjudication(); print()
     test_live_websocket_stream(); print()
+    test_multicar_simulation_and_exact_coordinates(); print()
     print("==================================================")
     print("[SUCCESS] ALL END-TO-END VERIFICATION CHECKS PASSED 100%!")
     print("==================================================")

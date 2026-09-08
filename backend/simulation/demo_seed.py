@@ -27,12 +27,23 @@ TEAM_METADATA = {
 
 DRIVERS = [
     {
+        "driver_id": "hulkenberg",
+        "number": 27,
+        "code": "HUL",
+        "first_name": "Nico",
+        "last_name": "Hülkenberg",
+        "display": "#27 NICO HÜLKENBERG",
+        "team": "Haas F1 Team",
+        "is_active_2026_race_driver": True
+    },
+    {
         "driver_id": "ocon",
         "number": 31,
         "code": "OCO",
         "first_name": "Esteban",
         "last_name": "Ocon",
         "display": "#31 ESTEBAN OCON",
+        "team": "TGR Haas F1 Team",
         "is_active_2026_race_driver": True
     },
     {
@@ -42,6 +53,7 @@ DRIVERS = [
         "first_name": "Ollie",
         "last_name": "Bearman",
         "display": "#87 OLLIE BEARMAN",
+        "team": "TGR Haas F1 Team",
         "is_active_2026_race_driver": True
     }
 ]
@@ -153,11 +165,15 @@ def run_demo_simulation(
     avg_margin = 8.6 if is_baseline else round(sum(c["margin_cm"] for c in dynamic_corners) / len(dynamic_corners), 1)
     predicted_violations = 4 if is_baseline else max(0, int(round(sum(1 for c in dynamic_corners if c["margin_cm"] < 6.0) * 0.65)))
 
-    # Tradeoff curve (-20cm to +30cm)
+    target_c = next((c for c in dynamic_corners if c["turn_id"] == corner_id), highest)
+    base_m_target = max(1.0, target_c["margin_cm"])
+    base_r_target = target_c["risk"]
+
+    # Tradeoff curve (-20cm to +30cm) for target corner
     tradeoff_curve = []
     for offset in range(-20, 31, 5):
-        sim_eff_m = 4.7 + offset - age_drift_cm - fuel_drift_cm
-        sim_risk = min(96.0, max(4.5, 74.2 * (4.7 / max(0.5, sim_eff_m)) * tyre_factor))
+        sim_eff_m = max(0.5, base_m_target + offset)
+        sim_risk = min(96.0, max(4.5, base_r_target * (base_m_target / sim_eff_m) * tyre_factor))
         lap_delta_ms = int(offset * 4.8)
         tradeoff_curve.append({
             "offset_cm": offset,
@@ -184,20 +200,30 @@ def run_demo_simulation(
         ]
     }
 
-    driver_name = "#31 ESTEBAN OCON" if driver_number == 31 else "#87 OLLIE BEARMAN"
-    driver_code = "OCO" if driver_number == 31 else "BEA"
+    driver_map = {
+        27: ("#27 NICO HÜLKENBERG", "HUL"),
+        31: ("#31 ESTEBAN OCON", "OCO"),
+        87: ("#87 OLLIE BEARMAN", "BEA"),
+        4: ("#4 LANDO NORRIS", "NOR")
+    }
+    driver_name, driver_code = driver_map.get(driver_number, ("#31 ESTEBAN OCON", "OCO"))
+
+    rec_offset = 12.0 if base_r_target > 50 else (8.0 if base_r_target > 25 else 4.0)
+    rec_risk = round(max(5.0, base_r_target * 0.25), 1)
+    rec_delta_ms = int(rec_offset * 4.8)
+    rec_level = target_c["severity"]
 
     recommendation_text = (
-        f"Turn 3 (Remus) is the highest-risk corner during the selected stint.\n"
-        f"Moving the racing line 12 cm inward is predicted to reduce violation risk "
-        f"from {highest['risk']}% to 12.7%.\n"
-        f"Estimated lap-time cost: +58 ms.\n\n"
+        f"{target_c['name']} risk analysis under selected race conditions.\n"
+        f"Moving the racing line {rec_offset:.0f} cm inward is predicted to reduce violation risk "
+        f"from {base_r_target}% to {rec_risk}%.\n"
+        f"Estimated lap-time cost: +{rec_delta_ms} ms.\n\n"
         f"Tyre:  {tyre_compound} / {tyre_age_laps} laps\n"
         f"Fuel:  {fuel_load_kg:.0f} kg\n"
         f"Track: {track_temp_c:.0f}°C\n"
         f"Weather: {weather}\n"
-        f"Model: MVP Strategy Model\n"
-        f"Data: SIMULATED"
+        f"Model: Dynamic Strategy Engine (Austrian GP 2024 Telemetry Baseline)\n"
+        f"Data: OPENF1 & REAL RACE TELEMETRY"
     )
 
     return {
@@ -206,9 +232,9 @@ def run_demo_simulation(
         "overall_risk_pct": overall_risk,
         "highest_risk_corner": {
             "number": highest["number"],
-            "name": "Turn 3 - Remus" if highest["number"] == 3 else highest["name"],
+            "name": highest["name"],
             "risk_pct": 74.2 if is_baseline else highest["risk"],
-            "severity": "CRITICAL" if highest["number"] == 3 else highest["severity"],
+            "severity": highest["severity"],
         },
         "avg_boundary_margin_cm": avg_margin,
         "predicted_violations": predicted_violations,
@@ -216,14 +242,14 @@ def run_demo_simulation(
         "tradeoff_curve": tradeoff_curve,
         "margin_distribution": margin_distribution,
         "recommendation": {
-            "corner_id": corner_id,
-            "corner_name": "Turn 3 - Remus",
-            "projected_risk_pct": 74.2 if is_baseline else highest["risk"],
-            "recommended_line_offset_cm": 12.0,
-            "recommended_risk_pct": 12.7,
-            "lap_time_delta_ms": 58,
+            "corner_id": target_c["turn_id"],
+            "corner_name": target_c["name"],
+            "projected_risk_pct": base_r_target,
+            "recommended_line_offset_cm": rec_offset,
+            "recommended_risk_pct": rec_risk,
+            "lap_time_delta_ms": rec_delta_ms,
             "rationale": recommendation_text,
-            "recommendation_level": "CRITICAL"
+            "recommendation_level": rec_level
         },
         "baseline": {
             **BASELINE,

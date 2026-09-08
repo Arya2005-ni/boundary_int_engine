@@ -30,7 +30,17 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   selectedSession,
   onSelectSession
 }) => {
-  const driverDisplay = selectedDriverNumber === 31 ? '#31 ESTEBAN OCON' : '#87 OLLIE BEARMAN';
+  const getDriverDisplay = (num: number) => {
+    switch (num) {
+      case 27: return '#27 NICO HÜLKENBERG';
+      case 31: return '#31 ESTEBAN OCON';
+      case 87: return '#87 OLLIE BEARMAN';
+      case 4: return '#4 LANDO NORRIS';
+      case 1: return '#1 MAX VERSTAPPEN';
+      default: return `#${num} DRIVER`;
+    }
+  };
+  const driverDisplay = getDriverDisplay(selectedDriverNumber);
 
   return (
     <header className="bg-[#0e0e14] border-b border-[#222230] px-5 py-2.5 flex flex-col xl:flex-row items-center justify-between gap-4 sticky top-0 z-50 shadow-md">
@@ -58,12 +68,25 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
         {/* Driver Quick Switcher */}
         <div className="flex items-center gap-1.5 bg-[#161622] p-1 rounded border border-[#2a2a3c]">
           <button
+            onClick={() => onSelectDriver(27)}
+            className={`px-2.5 py-1 rounded text-[11px] font-mono font-bold transition-all flex items-center gap-1 ${
+              selectedDriverNumber === 27
+                ? 'bg-[#E10600] text-white shadow-sm'
+                : 'text-gray-400 hover:text-white'
+            }`}
+            title="Haas F1 Team - Nico Hülkenberg"
+          >
+            <UserCheck className="w-3 h-3" />
+            #27 HÜL
+          </button>
+          <button
             onClick={() => onSelectDriver(31)}
             className={`px-2.5 py-1 rounded text-[11px] font-mono font-bold transition-all flex items-center gap-1 ${
               selectedDriverNumber === 31
                 ? 'bg-[#E10600] text-white shadow-sm'
                 : 'text-gray-400 hover:text-white'
             }`}
+            title="TGR Haas F1 Team - Esteban Ocon"
           >
             <UserCheck className="w-3 h-3" />
             #31 OCO
@@ -75,9 +98,22 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                 ? 'bg-[#E10600] text-white shadow-sm'
                 : 'text-gray-400 hover:text-white'
             }`}
+            title="TGR Haas F1 Team - Ollie Bearman"
           >
             <UserCheck className="w-3 h-3" />
             #87 BEA
+          </button>
+          <button
+            onClick={() => onSelectDriver(4)}
+            className={`px-2.5 py-1 rounded text-[11px] font-mono font-bold transition-all flex items-center gap-1 ${
+              selectedDriverNumber === 4
+                ? 'bg-[#FF8700] text-white shadow-sm'
+                : 'text-gray-400 hover:text-white'
+            }`}
+            title="McLaren F1 Team - Lando Norris"
+          >
+            <UserCheck className="w-3 h-3" />
+            #4 NOR
           </button>
         </div>
       </div>

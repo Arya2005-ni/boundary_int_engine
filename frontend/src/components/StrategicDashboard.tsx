@@ -80,7 +80,13 @@ export const StrategicDashboard: React.FC<StrategicDashboardProps> = ({
     }
   };
 
-  const driverName = selectedDriverNumber === 31 ? '#31 ESTEBAN OCON' : '#87 OLLIE BEARMAN';
+  const driverName = selectedDriverNumber === 27
+    ? '#27 NICO HÜLKENBERG'
+    : selectedDriverNumber === 31
+    ? '#31 ESTEBAN OCON'
+    : selectedDriverNumber === 4
+    ? '#4 LANDO NORRIS'
+    : '#87 OLLIE BEARMAN';
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -101,14 +107,26 @@ export const StrategicDashboard: React.FC<StrategicDashboardProps> = ({
         {/* Driver Toggle in Banner */}
         <div className="flex items-center gap-1.5 bg-[#12121a] p-1 rounded border border-[#272738] shrink-0">
           <button
+            onClick={() => onSelectDriver(27)}
+            className={`px-3 py-1 rounded text-xs font-mono font-bold transition-all ${
+              selectedDriverNumber === 27
+                ? 'bg-[#E10600] text-white shadow-md'
+                : 'text-gray-400 hover:text-white'
+            }`}
+            title="Haas F1 Team - Nico Hülkenberg"
+          >
+            #27 HÜL
+          </button>
+          <button
             onClick={() => onSelectDriver(31)}
             className={`px-3 py-1 rounded text-xs font-mono font-bold transition-all ${
               selectedDriverNumber === 31
                 ? 'bg-[#E10600] text-white shadow-md'
                 : 'text-gray-400 hover:text-white'
             }`}
+            title="TGR Haas F1 Team - Esteban Ocon"
           >
-            #31 OCON
+            #31 OCO
           </button>
           <button
             onClick={() => onSelectDriver(87)}
@@ -117,8 +135,20 @@ export const StrategicDashboard: React.FC<StrategicDashboardProps> = ({
                 ? 'bg-[#E10600] text-white shadow-md'
                 : 'text-gray-400 hover:text-white'
             }`}
+            title="TGR Haas F1 Team - Ollie Bearman"
           >
-            #87 BEARMAN
+            #87 BEA
+          </button>
+          <button
+            onClick={() => onSelectDriver(4)}
+            className={`px-3 py-1 rounded text-xs font-mono font-bold transition-all ${
+              selectedDriverNumber === 4
+                ? 'bg-[#FF8700] text-white shadow-md'
+                : 'text-gray-400 hover:text-white'
+            }`}
+            title="McLaren F1 Team - Lando Norris"
+          >
+            #4 NOR
           </button>
         </div>
       </div>

@@ -34,21 +34,28 @@ class GeometryEngine:
     def calculate_wheel_footprint(
         self,
         bbox: List[float],
-        heading_angle_deg: Optional[float] = None
+        heading_angle_deg: Optional[float] = None,
+        wheel_coords: Optional[Dict[str, Tuple[float, float]]] = None
     ) -> WheelFootprint:
         """
-        Calculates 4 contact patch points (FL, FR, RL, RR) based on vehicle bounding box [x1, y1, x2, y2].
+        Calculates 4 contact patch points (FL, FR, RL, RR) based on vehicle bounding box [x1, y1, x2, y2]
+        or explicit rotated wheel coordinates dict {'fl': (x, y), 'fr': (x, y), 'rl': (x, y), 'rr': (x, y)}.
         """
-        x1, y1, x2, y2 = bbox
-        w = x2 - x1
-        h = y2 - y1
+        if wheel_coords:
+            fl = tuple(wheel_coords.get("fl", (0.0, 0.0)))
+            fr = tuple(wheel_coords.get("fr", (0.0, 0.0)))
+            rl = tuple(wheel_coords.get("rl", (0.0, 0.0)))
+            rr = tuple(wheel_coords.get("rr", (0.0, 0.0)))
+        else:
+            x1, y1, x2, y2 = bbox
+            w = x2 - x1
+            h = y2 - y1
 
-        # Standard contact patch offsets relative to bounding box
-        # FL: top-left corner inset, FR: top-right corner inset, RL: bottom-left, RR: bottom-right
-        fl = (x1 + w * 0.15, y1 + h * 0.20)
-        fr = (x2 - w * 0.15, y1 + h * 0.20)
-        rl = (x1 + w * 0.15, y2 - h * 0.15)
-        rr = (x2 - w * 0.15, y2 - h * 0.15)
+            # Standard contact patch offsets relative to bounding box
+            fl = (x1 + w * 0.15, y1 + h * 0.20)
+            fr = (x2 - w * 0.15, y1 + h * 0.20)
+            rl = (x1 + w * 0.15, y2 - h * 0.15)
+            rr = (x2 - w * 0.15, y2 - h * 0.15)
 
         fl_pt = Point(fl)
         fr_pt = Point(fr)
@@ -85,8 +92,8 @@ class GeometryEngine:
     def calculate_margin_cm(self, footprint: WheelFootprint, bbox: List[float]) -> float:
         """
         Calculates signed margin to boundary in centimeters:
-        Positive (+) = Inside legal boundary (Safe)
-        Negative (-) = Outside legal boundary (Violation)
+        Positive (+) = Inside legal boundary (Safe / Borderline legal contact)
+        Negative (-) = All 4 wheels exceeded legal boundary (Violation)
         """
         points = [
             Point(footprint.fl_coords),
@@ -95,31 +102,29 @@ class GeometryEngine:
             Point(footprint.rr_coords)
         ]
 
-        # Check vehicle center point
-        x1, y1, x2, y2 = bbox
-        center_pt = Point((x1 + x2) / 2.0, (y1 + y2) / 2.0)
-
-        # Distance from points to boundary
-        distances = [self.boundary_linestring.distance(pt) for pt in points]
-        min_dist_px = min(distances)
-
-        # If any wheel is outside, the margin is negative
-        if footprint.wheels_out_count > 0:
-            # Measure how far the furthest outside wheel has crossed the line
-            outside_distances = []
-            if not footprint.fl_inside:
-                outside_distances.append(self.boundary_linestring.distance(Point(footprint.fl_coords)))
-            if not footprint.fr_inside:
-                outside_distances.append(self.boundary_linestring.distance(Point(footprint.fr_coords)))
-            if not footprint.rl_inside:
-                outside_distances.append(self.boundary_linestring.distance(Point(footprint.rl_coords)))
-            if not footprint.rr_inside:
-                outside_distances.append(self.boundary_linestring.distance(Point(footprint.rr_coords)))
+        if footprint.wheels_out_count == 4:
+            # All 4 wheels are outside: violation distance is distance of closest outside wheel to boundary line
+            outside_distances = [self.boundary_linestring.distance(pt) for pt in points]
+            closest_outside_px = min(outside_distances) if outside_distances else 0.0
+            return -round(closest_outside_px * self.scale, 2)
+        elif footprint.wheels_out_count > 0:
+            # 1 to 3 wheels out: vehicle still maintains legal contact with remaining inside wheels
+            inside_distances = []
+            if footprint.fl_inside:
+                inside_distances.append(self.boundary_linestring.distance(Point(footprint.fl_coords)))
+            if footprint.fr_inside:
+                inside_distances.append(self.boundary_linestring.distance(Point(footprint.fr_coords)))
+            if footprint.rl_inside:
+                inside_distances.append(self.boundary_linestring.distance(Point(footprint.rl_coords)))
+            if footprint.rr_inside:
+                inside_distances.append(self.boundary_linestring.distance(Point(footprint.rr_coords)))
             
-            furthest_outside_px = max(outside_distances) if outside_distances else min_dist_px
-            return -round(furthest_outside_px * self.scale, 2)
+            closest_inside_px = min(inside_distances) if inside_distances else 0.0
+            return round(closest_inside_px * self.scale, 2)
         else:
-            # All wheels are inside: distance is positive
+            # All 4 wheels inside: minimum distance of any wheel to the boundary
+            distances = [self.boundary_linestring.distance(pt) for pt in points]
+            min_dist_px = min(distances) if distances else 0.0
             return round(min_dist_px * self.scale, 2)
 
     def evaluate_state_machine(

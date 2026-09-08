@@ -107,11 +107,75 @@ export interface DynamicCornerRisk {
   turn_id: string;
 }
 
+export interface ExactCoordinates {
+  center_px: [number, number];
+  track_coords_m: [number, number];
+  bbox: [number, number, number, number];
+  heading_deg: number;
+  heading_rad: number;
+  margin_cm: number;
+  wheels_out_count: number;
+  fl: { coords: [number, number]; inside: boolean };
+  fr: { coords: [number, number]; inside: boolean };
+  rl: { coords: [number, number]; inside: boolean };
+  rr: { coords: [number, number]; inside: boolean };
+}
+
+export interface CompanionVehicle {
+  vehicle_id: number;
+  car_number: number;
+  driver_name: string;
+  team_name: string;
+  bbox: [number, number, number, number];
+  center: [number, number];
+  track_coords_m?: [number, number];
+  heading_deg: number;
+  heading_rad?: number;
+  wheel_pts: Record<string, [number, number]>;
+  telemetry: TelemetryPoint;
+  is_safe?: boolean;
+}
+
+export interface LiveTrackCar {
+  id: string;
+  number: number;
+  driverName: string;
+  driverCode: string;
+  teamName: string;
+  colorHex: string;
+  progress: number; // 0.0 to 1.0 along circuit
+  x: number; // SVG X
+  y: number; // SVG Y
+  trackCoordsM: [number, number]; // Scaled track meters
+  headingDeg: number;
+  speedKmh: number;
+  gear: number;
+  throttle: number;
+  brake: number;
+  marginCm: number;
+  wheelsOut: number;
+  state: TrackLimitState;
+  isViolating: boolean;
+  lap: number;
+}
+
+export interface SessionMeta {
+  meeting: string;
+  session: string;
+  circuit: string;
+  circuit_key?: number;
+  date: string;
+  provenance: string;
+  official_laps?: number;
+}
+
 export interface FrameAnalysisResult {
   type: string;
   frame_index: number;
+  lap?: number;
   timestamp_sec: number;
   timestamp_str: string;
+  timestamp_utc?: string;
   corner_id: string;
   corner_name: string;
   vehicle_id: number;
@@ -121,16 +185,22 @@ export interface FrameAnalysisResult {
   car_number: number;
   bbox: [number, number, number, number];
   center: [number, number];
+  track_coords_m?: [number, number];
+  heading_deg?: number;
   footprint: WheelFootprint;
   margin_to_boundary_cm: number;
   state: TrackLimitState;
   consecutive_outside: number;
   confidence: ConfidenceBreakdown;
   telemetry: TelemetryPoint;
+  exact_coordinates?: ExactCoordinates;
+  companion_vehicle?: CompanionVehicle;
   frame_b64: string;
   incident_flag: boolean;
+  official_fia_notice?: string | null;
   rule_profile?: string;
   data_source?: string;
+  session_info?: SessionMeta;
   is_official?: boolean;
 }
 

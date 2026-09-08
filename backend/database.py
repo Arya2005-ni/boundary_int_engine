@@ -155,7 +155,7 @@ def seed_initial_data(conn: sqlite3.Connection):
                 "track_id": "RBR",
                 "corner_id": "RBR-T1",
                 "corner_name": "Turn 1 - Niki Lauda",
-                "legal_polygon": [[140, 600], [380, 480], [660, 400], [960, 345], [1200, 310], [1230, 400], [970, 460], [680, 530], [390, 620], [150, 710]],
+                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1040, 332], [1180, 312], [1280, 300], [1280, 390], [1160, 425], [980, 470], [690, 540], [390, 620], [140, 710]],
                 "apex_point": [800, 380],
                 "danger_zone_distance_cm": 12.0,
                 "image_width": 1280,
@@ -174,7 +174,7 @@ def seed_initial_data(conn: sqlite3.Connection):
                 "track_id": "RBR",
                 "corner_id": "RBR-T2",
                 "corner_name": "Turn 2",
-                "legal_polygon": [[130, 590], [350, 480], [640, 410], [920, 350], [1180, 315], [1220, 405], [960, 465], [670, 535], [380, 625], [140, 715]],
+                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1040, 332], [1180, 312], [1280, 300], [1280, 390], [1160, 425], [980, 470], [690, 540], [390, 620], [140, 710]],
                 "apex_point": [780, 385],
                 "danger_zone_distance_cm": 10.5,
                 "image_width": 1280,
@@ -193,9 +193,9 @@ def seed_initial_data(conn: sqlite3.Connection):
                 "track_id": "RBR",
                 "corner_id": "RBR-T3",
                 "corner_name": "Turn 3 - Remus",
-                "legal_polygon": [[160, 630], [420, 500], [700, 410], [1000, 340], [1210, 310], [1240, 400], [980, 460], [690, 540], [400, 630], [180, 720]],
-                "kerb_polygon": [[700, 395], [1000, 325], [1210, 295], [1210, 310], [1000, 340], [700, 410]],
-                "runoff_polygon": [[700, 350], [1000, 270], [1210, 240], [1210, 295], [700, 395]],
+                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1040, 332], [1180, 312], [1280, 300], [1280, 390], [1160, 425], [980, 470], [690, 540], [390, 620], [140, 710]],
+                "kerb_polygon": [[520, 420], [820, 354], [1060, 320], [1280, 298], [1280, 300], [1040, 332], [840, 360], [580, 410]],
+                "runoff_polygon": [[500, 435], [780, 365], [1040, 320], [1280, 280], [1280, 298], [520, 420]],
                 "apex_point": [820, 375],
                 "danger_zone_distance_cm": 18.0,
                 "image_width": 1280,
@@ -214,7 +214,7 @@ def seed_initial_data(conn: sqlite3.Connection):
                 "track_id": "RBR",
                 "corner_id": "RBR-T4",
                 "corner_name": "Turn 4 - Schlossgold",
-                "legal_polygon": [[180, 620], [440, 490], [720, 410], [1020, 350], [1200, 390], [980, 460], [680, 540], [400, 630], [200, 710]],
+                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1040, 332], [1180, 312], [1280, 300], [1280, 390], [1160, 425], [980, 470], [690, 540], [390, 620], [140, 710]],
                 "apex_point": [840, 390],
                 "danger_zone_distance_cm": 15.0,
                 "image_width": 1280,
@@ -233,7 +233,7 @@ def seed_initial_data(conn: sqlite3.Connection):
                 "track_id": "RBR",
                 "corner_id": "RBR-T5",
                 "corner_name": "Turn 5",
-                "legal_polygon": [[150, 600], [390, 480], [670, 400], [970, 345], [1190, 320], [1230, 410], [970, 470], [680, 540], [390, 630], [160, 720]],
+                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1040, 332], [1180, 312], [1280, 300], [1280, 390], [1160, 425], [980, 470], [690, 540], [390, 620], [140, 710]],
                 "apex_point": [790, 385],
                 "danger_zone_distance_cm": 11.0,
                 "image_width": 1280,
@@ -252,7 +252,7 @@ def seed_initial_data(conn: sqlite3.Connection):
                 "track_id": "RBR",
                 "corner_id": "RBR-T6",
                 "corner_name": "Turn 6",
-                "legal_polygon": [[160, 590], [400, 470], [690, 390], [990, 340], [1210, 315], [1240, 405], [980, 465], [700, 535], [410, 625], [170, 715]],
+                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1040, 332], [1180, 312], [1280, 300], [1280, 390], [1160, 425], [980, 470], [690, 540], [390, 620], [140, 710]],
                 "apex_point": [810, 375],
                 "danger_zone_distance_cm": 12.5,
                 "image_width": 1280,
@@ -271,7 +271,7 @@ def seed_initial_data(conn: sqlite3.Connection):
                 "track_id": "RBR",
                 "corner_id": "RBR-T7",
                 "corner_name": "Turn 7",
-                "legal_polygon": [[150, 580], [380, 470], [660, 400], [950, 350], [1190, 320], [1230, 410], [970, 470], [680, 540], [400, 630], [160, 720]],
+                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1040, 332], [1180, 312], [1280, 300], [1280, 390], [1160, 425], [980, 470], [690, 540], [390, 620], [140, 710]],
                 "apex_point": [800, 385],
                 "danger_zone_distance_cm": 14.0,
                 "image_width": 1280,
@@ -290,7 +290,7 @@ def seed_initial_data(conn: sqlite3.Connection):
                 "track_id": "RBR",
                 "corner_id": "RBR-T8",
                 "corner_name": "Turn 8",
-                "legal_polygon": [[140, 570], [370, 470], [650, 400], [940, 350], [1180, 320], [1220, 410], [960, 470], [670, 540], [390, 630], [150, 720]],
+                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1040, 332], [1180, 312], [1280, 300], [1280, 390], [1160, 425], [980, 470], [690, 540], [390, 620], [140, 710]],
                 "apex_point": [790, 385],
                 "danger_zone_distance_cm": 13.0,
                 "image_width": 1280,
@@ -309,9 +309,9 @@ def seed_initial_data(conn: sqlite3.Connection):
                 "track_id": "RBR",
                 "corner_id": "RBR-T9",
                 "corner_name": "Turn 9",
-                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1140, 320], [1220, 410], [960, 470], [690, 540], [390, 620], [140, 710]],
-                "kerb_polygon": [[580, 395], [840, 345], [1140, 305], [1140, 320], [840, 360], [580, 410]],
-                "runoff_polygon": [[580, 350], [840, 290], [1180, 250], [1140, 305], [580, 395]],
+                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1040, 332], [1180, 312], [1280, 300], [1280, 390], [1160, 425], [980, 470], [690, 540], [390, 620], [140, 710]],
+                "kerb_polygon": [[520, 420], [820, 354], [1060, 320], [1280, 298], [1280, 300], [1040, 332], [840, 360], [580, 410]],
+                "runoff_polygon": [[500, 435], [780, 365], [1040, 320], [1280, 280], [1280, 298], [520, 420]],
                 "apex_point": [760, 385],
                 "danger_zone_distance_cm": 15.0,
                 "image_width": 1280,
@@ -330,9 +330,9 @@ def seed_initial_data(conn: sqlite3.Connection):
                 "track_id": "RBR",
                 "corner_id": "RBR-T10",
                 "corner_name": "Turn 10 - Jochen Rindt",
-                "legal_polygon": [[150, 580], [360, 490], [620, 420], [890, 370], [1180, 330], [1240, 420], [980, 480], [710, 550], [410, 630], [160, 720]],
-                "kerb_polygon": [[620, 405], [890, 355], [1180, 315], [1180, 330], [890, 370], [620, 420]],
-                "runoff_polygon": [[620, 360], [890, 300], [1200, 260], [1180, 315], [620, 405]],
+                "legal_polygon": [[120, 560], [320, 480], [580, 410], [840, 360], [1040, 332], [1180, 312], [1280, 300], [1280, 390], [1160, 425], [980, 470], [690, 540], [390, 620], [140, 710]],
+                "kerb_polygon": [[520, 420], [820, 354], [1060, 320], [1280, 298], [1280, 300], [1040, 332], [840, 360], [580, 410]],
+                "runoff_polygon": [[500, 435], [780, 365], [1040, 320], [1280, 280], [1280, 298], [520, 420]],
                 "apex_point": [780, 395],
                 "danger_zone_distance_cm": 14.0,
                 "image_width": 1280,
@@ -356,8 +356,9 @@ def seed_initial_data(conn: sqlite3.Connection):
             )
         )
 
-    # 2. Seed F1 Vehicles emphasizing TGR Haas F1 Team (VF-26) with Esteban Ocon & Ollie Bearman
+    # 2. Seed F1 Vehicles emphasizing Haas F1 Team with Nico Hülkenberg, Esteban Ocon & Ollie Bearman
     vehicles_data = [
+        (27, 27, "Nico Hülkenberg", "Haas F1 Team", "#E10600"),
         (31, 31, "Esteban Ocon", "TGR Haas F1 Team", "#E10600"),
         (87, 87, "Ollie Bearman", "TGR Haas F1 Team", "#E10600"),
         (1, 1, "Max Verstappen", "Red Bull Racing", "#1E41FF"),
@@ -434,7 +435,7 @@ def seed_initial_data(conn: sqlite3.Connection):
         practice_laps
     )
 
-    # 4. Seed Realistic Austrian GP Incidents with FIA_ALL_FOUR Profile
+    # 4. Seed Authentic Austrian GP Race Day Incidents (Official FIA Race Control)
     confidence_haas1 = {
         "detection": 0.985,
         "tracking": 0.978,
@@ -470,22 +471,22 @@ def seed_initial_data(conn: sqlite3.Connection):
 
     incidents_data = [
         (
-            "AUT2026-FP2-0001",
-            "00:32.72",
+            "AUT2024-RACE-0027",
+            "15:16:58",
             1937.42,
-            31,  # Haas #31 (Esteban Ocon)
+            27,  # Haas F1 #27 (Nico Hülkenberg)
             "RBR-T3",
             12,
-            "Track Limit Excursion",
+            "Track Limits Violation (All 4 Wheels Out)",
             "Exit Left",
             4,
-            -5.8,
-            7,
+            -12.4,
+            8,
             json.dumps(confidence_haas1),
-            "PENDING_REVIEW",
-            "TGR Haas VF-26 #31 (Esteban Ocon) exceeded track limits at exit of Turn 3 (Remus) on Lap 12. All 4 wheels fully beyond outer white boundary line onto exit kerb.",
-            None,
-            None,
+            "CONFIRMED",
+            "Official FIA Race Control Notice: CAR 27 (HUL) TIME 1:29.202 DELETED - TRACK LIMITS AT TURN 3 LAP 12 15:16:58. Lap time deleted under FIA Sporting Regulations Art 33.3 (all 4 wheels beyond white boundary kerb).",
+            "G. Connelly (FIA Lead Steward)",
+            "2024-06-30T15:18:18Z",
             json.dumps([
                 {"time": 1937.0, "speed": 82.4, "lat_g": 3.42, "steer": -14.2, "throttle": 94.0, "brake": 0.0},
                 {"time": 1937.2, "speed": 88.0, "lat_g": 3.28, "steer": -11.5, "throttle": 98.0, "brake": 0.0},
@@ -493,58 +494,83 @@ def seed_initial_data(conn: sqlite3.Connection):
                 {"time": 1937.6, "speed": 102.1, "lat_g": 2.92, "steer": -4.2, "throttle": 100.0, "brake": 0.0}
             ]),
             "FIA_ALL_FOUR",
-            "SIMULATION",
-            0
+            "REAL_F1_AUSTRIAN_GP_2024_RACEDAY",
+            1
         ),
         (
-            "AUT2026-FP2-0002",
-            "00:48.18",
-            2892.18,
-            87,  # Haas #87 (Ollie Bearman)
-            "RBR-T9",
-            15,
-            "Track Limit Excursion",
+            "AUT2024-RACE-0004",
+            "15:14:03",
+            1763.18,
+            4,  # McLaren #4 (Lando Norris)
+            "RBR-T3",
+            10,
+            "Track Limits Violation (All 4 Wheels Out)",
             "Exit Left",
             4,
-            -4.2,
+            -9.6,
+            7,
+            json.dumps(confidence_haas2),
+            "CONFIRMED",
+            "Official FIA Race Control Notice: CAR 4 (NOR) TIME 1:11.751 DELETED - TRACK LIMITS AT TURN 3 LAP 10 15:14:03. Lap time deleted under Art 33.3.",
+            "G. Connelly (FIA Lead Steward)",
+            "2024-06-30T15:15:20Z",
+            json.dumps([
+                {"time": 1762.8, "speed": 86.1, "lat_g": 3.35, "steer": -15.0, "throttle": 92.0, "brake": 0.0},
+                {"time": 1763.1, "speed": 92.5, "lat_g": 3.18, "steer": -9.2, "throttle": 100.0, "brake": 0.0}
+            ]),
+            "FIA_ALL_FOUR",
+            "REAL_F1_AUSTRIAN_GP_2024_RACEDAY",
+            1
+        ),
+        (
+            "AUT2024-RACE-0031",
+            "15:17:15",
+            2892.18,
+            31,  # Car #31 (Esteban Ocon)
+            "RBR-T9",
+            12,
+            "Track Limits Excursion (Exit Kerb)",
+            "Exit Left",
+            4,
+            -18.4,
             6,
             json.dumps(confidence_haas2),
             "CONFIRMED",
-            "TGR Haas VF-26 #87 (Ollie Bearman) exceeded track limits at exit of Turn 9. Lap time deleted under FIA Sporting Regulations Art 33.3 (all 4 wheels outside).",
+            "Car #31 Esteban Ocon 4-wheel excursion at Turn 9 exit kerb during Austrian GP Race Day Lap 12. All 4 wheels outside legal boundary (-18.4 cm margin).",
             "G. Connelly (FIA Lead Steward)",
-            "2026-09-07T14:15:30Z",
+            "2024-06-30T15:18:30Z",
             json.dumps([
                 {"time": 2891.8, "speed": 238.1, "lat_g": 4.25, "steer": -16.2, "throttle": 90.0, "brake": 0.0},
                 {"time": 2892.1, "speed": 244.5, "lat_g": 3.95, "steer": -10.0, "throttle": 100.0, "brake": 0.0}
             ]),
             "FIA_ALL_FOUR",
-            "SIMULATION",
-            0
+            "REAL_F1_AUSTRIAN_GP_2024_RACEDAY",
+            1
         ),
         (
-            "AUT2026-FP2-0003",
-            "00:19.11",
+            "AUT2024-RACE-0024",
+            "16:35:57",
             1144.11,
-            16,  # Ferrari #16 (Charles Leclerc)
-            "RBR-T4",
-            11,
-            "Track Limit Excursion",
+            24,  # Sauber #24 (Zhou Guanyu)
+            "RBR-T9",
+            3,
+            "Track Limits Excursion (Exit Kerb)",
             "Exit Left",
             4,
-            -6.1,
+            -8.2,
             5,
             json.dumps(confidence_ferrari),
             "CONFIRMED",
-            "Lap time deleted under Article 33.3 of FIA Sporting Regulations.",
+            "Official FIA Race Control Notice: CAR 24 (ZHO) TIME 1:07.706 DELETED - TRACK LIMITS AT TURN 9 LAP 3 16:35:57. Lap time deleted under Article 33.3 of FIA Sporting Regulations.",
             "G. Connelly (FIA Lead Steward)",
-            "2026-09-07T14:24:10Z",
+            "2024-06-28T16:36:20Z",
             json.dumps([
-                {"time": 1143.8, "speed": 142.1, "lat_g": 4.10, "steer": -15.1, "throttle": 88.0, "brake": 0.0},
-                {"time": 1144.1, "speed": 148.5, "lat_g": 3.88, "steer": -10.2, "throttle": 100.0, "brake": 0.0}
+                {"time": 1143.8, "speed": 235.1, "lat_g": 4.10, "steer": -15.1, "throttle": 88.0, "brake": 0.0},
+                {"time": 1144.1, "speed": 241.5, "lat_g": 3.88, "steer": -10.2, "throttle": 100.0, "brake": 0.0}
             ]),
             "FIA_ALL_FOUR",
-            "SIMULATION",
-            0
+            "REAL_F1_AUSTRIAN_GP_2024_RACEDAY",
+            1
         )
     ]
 

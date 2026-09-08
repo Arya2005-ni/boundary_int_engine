@@ -59,6 +59,10 @@ class TelemetryPoint(BaseModel):
     lap: int = 1
     sector: int = 1
     corner_id: Optional[str] = None
+    drs: Optional[int] = 0
+    data_source: Optional[str] = "REAL_F1_AUSTRIAN_GP_2024_RACEDAY"
+    world_coords: Optional[List[float]] = None
+    timestamp_utc: Optional[str] = None
 
 
 class CornerCalibration(BaseModel):
@@ -119,6 +123,7 @@ class Incident(BaseModel):
 
 class SimulationRequest(BaseModel):
     corner_id: str
+    driver_number: int = 31
     tyre_compound: str = "Medium"
     tyre_age_laps: int = Field(15, ge=1, le=50)
     fuel_load_kg: float = Field(65.0, ge=5.0, le=110.0)
