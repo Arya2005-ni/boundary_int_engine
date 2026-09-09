@@ -720,7 +720,56 @@ async def websocket_session_feed(
                     telemetry=telem_obj
                 )
 
-                # 5. Base64 JPEG frame for live canvas render
+                # 5. Evaluate companion vehicle (strictly on track companion car)
+                comp_item = frame_item.get("companion_vehicle")
+                companion_payload = None
+                if comp_item:
+                    comp_fp = geom_engine.calculate_wheel_footprint(comp_item["bbox"], wheel_coords=comp_item.get("wheel_pts"))
+                    comp_margin = geom_engine.calculate_margin_cm(comp_fp, comp_item["bbox"])
+                    comp_state, comp_consec = geom_engine.evaluate_state_machine(
+                        comp_item["vehicle_id"], comp_fp, comp_margin, min_consecutive_violation_frames=3, rule_profile="FIA_ALL_FOUR"
+                    )
+                    comp_telem = TelemetryPoint(**comp_item["telemetry"])
+                    comp_conf = ConfidenceEngine.calculate_confidence(
+                        yolo_det_conf=0.98,
+                        tracking_consistency=0.97,
+                        margin_cm=comp_margin,
+                        footprint=comp_fp,
+                        consecutive_frames=comp_consec,
+                        telemetry=comp_telem
+                    )
+                    companion_payload = {
+                        "vehicle_id": comp_item["vehicle_id"],
+                        "driver_name": comp_item["driver_name"],
+                        "team_name": comp_item.get("team_name", "TGR Haas F1 Team"),
+                        "car_model": "VF-26",
+                        "car_number": comp_item["vehicle_id"],
+                        "bbox": comp_item["bbox"],
+                        "center": comp_item["center"],
+                        "track_coords_m": comp_item.get("track_coords_m", [round(comp_item["center"][0] * 0.5, 2), round(comp_item["center"][1] * 0.5, 2)]),
+                        "heading_deg": comp_item.get("heading_deg", 0.0),
+                        "footprint": comp_fp.model_dump(),
+                        "margin_to_boundary_cm": comp_margin,
+                        "state": comp_state.value,
+                        "consecutive_outside": comp_consec,
+                        "confidence": comp_conf.model_dump(),
+                        "telemetry": comp_item["telemetry"],
+                        "incident_flag": (comp_state == TrackLimitState.VIOLATION and comp_consec >= 3),
+                        "exact_coordinates": {
+                            "center_px": comp_item["center"],
+                            "track_coords_m": comp_item.get("track_coords_m", [round(comp_item["center"][0] * 0.5, 2), round(comp_item["center"][1] * 0.5, 2)]),
+                            "bbox": comp_item["bbox"],
+                            "heading_deg": comp_item.get("heading_deg", 0.0),
+                            "margin_cm": comp_margin,
+                            "wheels_out_count": comp_fp.wheels_out_count,
+                            "fl": {"coords": list(comp_fp.fl_coords), "inside": comp_fp.fl_inside},
+                            "fr": {"coords": list(comp_fp.fr_coords), "inside": comp_fp.fr_inside},
+                            "rl": {"coords": list(comp_fp.rl_coords), "inside": comp_fp.rl_inside},
+                            "rr": {"coords": list(comp_fp.rr_coords), "inside": comp_fp.rr_inside}
+                        }
+                    }
+
+                # 6. Base64 JPEG frame for live canvas render
                 b64_frame = base64.b64encode(frame_item["jpeg_bytes"]).decode('utf-8')
 
                 exact_coords = {
@@ -743,9 +792,7 @@ async def websocket_session_feed(
 
                 is_violation = (state == TrackLimitState.VIOLATION and consecutive_outside >= 3)
                 fia_citation = (
-                    "FIA Race Control: CAR 27 (HUL) TIME 1:29.202 DELETED - TRACK LIMITS AT TURN 3 LAP 12"
-                    if target_vehicle == 27
-                    else f"FIA Race Control: CAR {target_vehicle} LAP DELETED - TRACK LIMITS AT {corner_name.upper()} LAP {current_lap}"
+                    f"FIA Race Control: CAR #{target_vehicle} ({driver_name}) LAP DELETED - TRACK LIMITS AT {corner_name.upper()} LAP {current_lap}"
                 ) if is_violation else None
 
                 payload = {
@@ -754,7 +801,7 @@ async def websocket_session_feed(
                     "lap": current_lap,
                     "timestamp_sec": ts_sec,
                     "timestamp_str": ts_str,
-                    "timestamp_utc": telem_dict.get("timestamp_utc", f"2024-06-30T13:16:{14 + f_idx//30:02d}.{f_idx*33%1000:03d}Z"),
+                    "timestamp_utc": telem_dict.get("timestamp_utc", f"2026-06-28T13:16:{14 + f_idx//30:02d}.{f_idx*33%1000:03d}Z"),
                     "corner_id": target_corner,
                     "corner_name": corner_name,
                     "vehicle_id": target_vehicle,
@@ -773,12 +820,12 @@ async def websocket_session_feed(
                     "confidence": confidence.model_dump(),
                     "telemetry": telem_dict,
                     "exact_coordinates": exact_coords,
-                    "companion_vehicle": frame_item.get("companion_vehicle"),
+                    "companion_vehicle": companion_payload,
                     "frame_b64": f"data:image/jpeg;base64,{b64_frame}",
                     "incident_flag": is_violation,
                     "official_fia_notice": fia_citation,
                     "rule_profile": "FIA_ALL_FOUR",
-                    "data_source": "REAL_F1_AUSTRIAN_GP_2024_RACEDAY",
+                    "data_source": "SIMULATION_AUSTRIAN_GP",
                     "session_info": session_meta,
                     "is_official": True
                 }

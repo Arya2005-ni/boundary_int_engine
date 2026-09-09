@@ -330,15 +330,15 @@ class VideoGenerator:
             "companion": car_number
         })
 
-        # 1. Safe racing line waypoints (Companion car - strictly stays on legal track)
+        # 1. Safe racing line waypoints (Companion car - strictly stays on legal track central racing line)
         wp_safe = [
             (150, 640),
             (380, 545),
-            (640, 465),
-            (840, 415),
-            (1000, 380),
-            (1140, 355),
-            (1270, 345)
+            (640, 470),
+            (840, 420),
+            (990, 390),
+            (1120, 370),
+            (1240, 355)
         ]
 
         # 2. Excursion line waypoints (Monitored car - aggressive corner exit wide onto kerb & runoff)

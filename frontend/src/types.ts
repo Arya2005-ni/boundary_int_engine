@@ -126,14 +126,22 @@ export interface CompanionVehicle {
   car_number: number;
   driver_name: string;
   team_name: string;
+  car_model?: string;
   bbox: [number, number, number, number];
   center: [number, number];
   track_coords_m?: [number, number];
   heading_deg: number;
   heading_rad?: number;
-  wheel_pts: Record<string, [number, number]>;
+  wheel_pts?: Record<string, [number, number]>;
+  footprint?: WheelFootprint;
+  margin_to_boundary_cm?: number;
+  state?: TrackLimitState;
+  consecutive_outside?: number;
+  confidence?: ConfidenceBreakdown;
   telemetry: TelemetryPoint;
+  incident_flag?: boolean;
   is_safe?: boolean;
+  exact_coordinates?: ExactCoordinates;
 }
 
 export interface LiveTrackCar {
